@@ -6,7 +6,7 @@ AI-powered software project effort estimation tool. Upload project documents or 
 
 - **Project Management** - Create, edit, import, and browse past projects with full details
 - **AI Estimation** - Get effort estimates powered by Azure OpenAI with structured output
-- **Document Import** - Upload project specs (PDF, DOCX, XLSX, etc.) and auto-extract project info
+- **Document Import** - Upload project specs (PDF, DOCX, DOC, ODT, RTF, TXT, MD, XLSX, XLS, CSV, PPTX, PPT (max 50 MB per file)) and auto-extract project info
 - **Implementation Plans** - Phase-by-phase breakdown with tasks and person-day effort
 - **Risk & Assumptions** - Identify risks, assumptions, and ambiguous areas
 - **Similar Project Matching** - Vector similarity search finds comparable past projects
