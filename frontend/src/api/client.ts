@@ -64,7 +64,7 @@ async function postSse<T>(
 
   if (response.status === 401) {
     window.location.reload();
-    throw buildError("Unauthorized.");
+    throw buildError("Session expired, reloading page...");
   }
 
   if (!response.ok) {

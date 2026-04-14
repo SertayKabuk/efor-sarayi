@@ -5,9 +5,9 @@ from typing import TypeVar
 T = TypeVar("T")
 
 async def single_item_stream(
-    item_or_factory: Callable[[], T | Awaitable[T]] | T | Awaitable[T],
+    item_factory: Callable[[], T | Awaitable[T]],
 ) -> AsyncIterator[T]:
-    item = item_or_factory() if callable(item_or_factory) else item_or_factory
+    item = item_factory()
     if isawaitable(item):
         item = await item
     yield item
