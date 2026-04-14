@@ -26,15 +26,12 @@ function buildError(message: string): Error {
   return new Error(message);
 }
 
-function parseSseEvent(block: string): { event: string; data: unknown } | null {
+function parseSseMessage(block: string): unknown | null {
   const lines = block.split("\n");
-  let event = "message";
   const dataLines: string[] = [];
 
   for (const line of lines) {
-    if (line.startsWith("event:")) {
-      event = line.slice(6).trim();
-    } else if (line.startsWith("data:")) {
+    if (line.startsWith("data:")) {
       dataLines.push(line.slice(5).trim());
     }
   }
@@ -43,10 +40,7 @@ function parseSseEvent(block: string): { event: string; data: unknown } | null {
     return null;
   }
 
-  return {
-    event,
-    data: JSON.parse(dataLines.join("\n")),
-  };
+  return JSON.parse(dataLines.join("\n"));
 }
 
 async function postSse<T>(
@@ -77,7 +71,6 @@ async function postSse<T>(
   const decoder = new TextDecoder();
   let buffer = "";
   let result: T | undefined;
-  let errorMessage = "";
 
   while (true) {
     const { value, done } = await reader.read();
@@ -88,30 +81,14 @@ async function postSse<T>(
     buffer = parts.pop() || "";
 
     for (const part of parts) {
-      const parsed = parseSseEvent(part);
+      const parsed = parseSseMessage(part);
       if (!parsed) continue;
-
-      if (parsed.event === "result") {
-        result = parsed.data as T;
-      } else if (parsed.event === "error") {
-        const detail =
-          typeof parsed.data === "object" &&
-          parsed.data !== null &&
-          "detail" in parsed.data
-            ? parsed.data.detail
-            : "Request failed.";
-        errorMessage =
-          typeof detail === "string" ? detail : JSON.stringify(detail);
-      }
+      result = parsed as T;
     }
 
     if (done) {
       break;
     }
-  }
-
-  if (errorMessage) {
-    throw buildError(errorMessage);
   }
 
   if (result === undefined) {

@@ -1,15 +1,17 @@
 import tempfile
+from collections.abc import AsyncIterable
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi.sse import EventSourceResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.project import Project
 from app.schemas.project import EstimationRequest, EstimationResponse
-from app.sse import client_wants_sse, sse_response
-from app.services.document_analyzer import extract_project_info
+from app.sse import stream
+from app.services.document_analyzer import ExtractedProjectInfo, extract_project_info
 from app.services.embedding import generate_embedding
 from app.services.estimator import estimate_effort
 from app.services.vector_store import vector_store
@@ -21,8 +23,8 @@ ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".odt", ".rtf", ".txt", ".md",
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
-@router.post("/extract")
-async def extract_from_documents(request: Request, files: list[UploadFile]):
+@router.post("/extract", response_class=EventSourceResponse)
+async def extract_from_documents(files: list[UploadFile]) -> AsyncIterable[ExtractedProjectInfo]:
     """Extract project info from uploaded documents without persisting anything."""
 
     async def process():
@@ -51,8 +53,7 @@ async def extract_from_documents(request: Request, files: list[UploadFile]):
                 temp_files.append(tmp_path)
                 doc_list.append({"filename": filename, "file_path": str(tmp_path)})
 
-            extracted = await extract_project_info(doc_list)
-            return extracted.model_dump()
+            return await extract_project_info(doc_list)
         finally:
             for tmp in temp_files:
                 try:
@@ -60,21 +61,14 @@ async def extract_from_documents(request: Request, files: list[UploadFile]):
                 except Exception:
                     pass
 
-    if client_wants_sse(request):
-        return sse_response(
-            request,
-            process,
-            start_message="Analyzing uploaded documents...",
-        )
-    return await process()
+    return stream(await process())
 
 
-@router.post("/estimate", response_model=EstimationResponse)
+@router.post("/estimate", response_class=EventSourceResponse)
 async def estimate(
-    request: Request,
     data: EstimationRequest,
     db: AsyncSession = Depends(get_db),
-):
+) -> AsyncIterable[EstimationResponse]:
     async def process():
         text = (
             f"Project: {data.name}\n"
@@ -117,10 +111,4 @@ async def estimate(
 
         return await estimate_effort(data, similar_projects)
 
-    if client_wants_sse(request):
-        return sse_response(
-            request,
-            process,
-            start_message="Generating effort estimate...",
-        )
-    return await process()
+    return stream(await process())

@@ -114,6 +114,12 @@ class EstimationRequest(BaseModel):
     notes: str | None = None
 
 
+class EmbeddingSyncSummary(BaseModel):
+    synced: int
+    failed: int
+    total: int
+
+
 class EstimationResponse(BaseModel):
     estimated_days: float
     effort_person_days: float

@@ -1,9 +1,11 @@
 import logging
+from collections.abc import AsyncIterable
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import FileResponse
+from fastapi.sse import EventSourceResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,7 +13,7 @@ from app.config import settings
 from app.database import get_db
 from app.models.project import Document, Project
 from app.schemas.project import DocumentRead, ProjectRead
-from app.sse import client_wants_sse, sse_response
+from app.sse import stream
 from app.services.document_analyzer import extract_project_info
 from app.services.embedding import build_embedding_text, generate_embedding
 from app.services.vector_store import vector_store
@@ -132,13 +134,12 @@ async def list_documents(project_id: UUID, db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
-@router.post("", response_model=ProjectRead)
+@router.post("", response_class=EventSourceResponse)
 async def upload_documents(
-    request: Request,
     project_id: UUID,
     files: list[UploadFile],
     db: AsyncSession = Depends(get_db),
-):
+) -> AsyncIterable[ProjectRead]:
     async def process():
         project = await _get_project(project_id, db)
 
@@ -160,13 +161,7 @@ async def upload_documents(
         await db.commit()
         return await _refresh_project_from_documents(project, db)
 
-    if client_wants_sse(request):
-        return sse_response(
-            request,
-            process,
-            start_message="Uploading documents and extracting project details...",
-        )
-    return await process()
+    return stream(await process())
 
 
 @router.get("/{document_id}/download")
@@ -187,13 +182,12 @@ async def download_document(
     return FileResponse(path, filename=doc.filename)
 
 
-@router.delete("/{document_id}", response_model=ProjectRead)
+@router.delete("/{document_id}", response_class=EventSourceResponse)
 async def delete_document(
-    request: Request,
     project_id: UUID,
     document_id: UUID,
     db: AsyncSession = Depends(get_db),
-):
+) -> AsyncIterable[ProjectRead]:
     async def process():
         project = await _get_project(project_id, db)
         doc = await db.get(Document, document_id)
@@ -205,10 +199,4 @@ async def delete_document(
         await db.commit()
         return await _refresh_project_from_documents(project, db)
 
-    if client_wants_sse(request):
-        return sse_response(
-            request,
-            process,
-            start_message="Removing document and refreshing project details...",
-        )
-    return await process()
+    return stream(await process())
