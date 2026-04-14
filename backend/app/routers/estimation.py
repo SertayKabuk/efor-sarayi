@@ -1,6 +1,7 @@
 import tempfile
 from collections.abc import AsyncIterable
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
@@ -9,9 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.project import Project
-from app.schemas.project import EstimationRequest, EstimationResponse
+from app.schemas.project import EstimationRequest
 from app.sse import single_item_stream
-from app.services.document_analyzer import ExtractedProjectInfo, extract_project_info
+from app.services.document_analyzer import extract_project_info
 from app.services.embedding import generate_embedding
 from app.services.estimator import estimate_effort
 from app.services.vector_store import vector_store
@@ -24,7 +25,7 @@ MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
 @router.post("/extract", response_class=EventSourceResponse)
-async def extract_from_documents(files: list[UploadFile]) -> AsyncIterable[ExtractedProjectInfo]:
+async def extract_from_documents(files: list[UploadFile]) -> AsyncIterable[dict[str, Any]]:
     """Extract project info from uploaded documents without persisting anything."""
 
     async def process():
@@ -53,7 +54,8 @@ async def extract_from_documents(files: list[UploadFile]) -> AsyncIterable[Extra
 
                 doc_list.append({"filename": filename, "file_path": str(tmp_path)})
 
-            return await extract_project_info(doc_list)
+            extracted = await extract_project_info(doc_list)
+            return extracted.model_dump(mode="json")
         finally:
             for tmp in temp_files:
                 try:
@@ -61,14 +63,14 @@ async def extract_from_documents(files: list[UploadFile]) -> AsyncIterable[Extra
                 except Exception:
                     pass
 
-    return single_item_stream(await process())
+    return single_item_stream(process)
 
 
 @router.post("/estimate", response_class=EventSourceResponse)
 async def estimate(
     data: EstimationRequest,
     db: AsyncSession = Depends(get_db),
-) -> AsyncIterable[EstimationResponse]:
+) -> AsyncIterable[dict[str, Any]]:
     async def process():
         text = (
             f"Project: {data.name}\n"
@@ -109,6 +111,7 @@ async def estimate(
                         }
                     )
 
-        return await estimate_effort(data, similar_projects)
+        result = await estimate_effort(data, similar_projects)
+        return result.model_dump(mode="json")
 
-    return single_item_stream(await process())
+    return single_item_stream(process)

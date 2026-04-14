@@ -1,6 +1,7 @@
 import logging
 from collections.abc import AsyncIterable
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
@@ -24,6 +25,10 @@ router = APIRouter(prefix="/api/v1/projects/{project_id}/documents", tags=["docu
 ALLOWED_EXTENSIONS = {".pdf", ".docx", ".doc", ".odt", ".rtf", ".txt", ".md",
                       ".xlsx", ".xls", ".csv", ".pptx", ".ppt"}
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB (OpenAI limit)
+
+
+def _project_payload(project: Project) -> dict[str, Any]:
+    return ProjectRead.model_validate(project).model_dump(mode="json")
 
 
 def _check_extension(filename: str) -> None:
@@ -71,7 +76,10 @@ def _delete_file(file_path: str) -> None:
         logger.warning("Failed to delete file %s", file_path, exc_info=True)
 
 
-async def _refresh_project_from_documents(project: Project, db: AsyncSession) -> Project:
+async def _refresh_project_from_documents(
+    project: Project,
+    db: AsyncSession,
+) -> dict[str, Any]:
     """Send all documents to the LLM and update project fields."""
     result = await db.execute(
         select(Document).where(Document.project_id == project.id).order_by(Document.created_at)
@@ -79,7 +87,7 @@ async def _refresh_project_from_documents(project: Project, db: AsyncSession) ->
     docs = result.scalars().all()
 
     if not docs:
-        return project
+        return _project_payload(project)
 
     doc_list = [{"filename": d.filename, "file_path": d.file_path} for d in docs]
     extracted = await extract_project_info(doc_list)
@@ -122,7 +130,7 @@ async def _refresh_project_from_documents(project: Project, db: AsyncSession) ->
     except Exception:
         logger.warning("Failed to sync embedding for project %s", project.id, exc_info=True)
 
-    return project
+    return _project_payload(project)
 
 
 @router.get("", response_model=list[DocumentRead])
@@ -139,7 +147,7 @@ async def upload_documents(
     project_id: UUID,
     files: list[UploadFile],
     db: AsyncSession = Depends(get_db),
-) -> AsyncIterable[ProjectRead]:
+) -> AsyncIterable[dict[str, Any]]:
     async def process():
         project = await _get_project(project_id, db)
 
@@ -161,7 +169,7 @@ async def upload_documents(
         await db.commit()
         return await _refresh_project_from_documents(project, db)
 
-    return single_item_stream(await process())
+    return single_item_stream(process)
 
 
 @router.get("/{document_id}/download")
@@ -187,7 +195,7 @@ async def delete_document(
     project_id: UUID,
     document_id: UUID,
     db: AsyncSession = Depends(get_db),
-) -> AsyncIterable[ProjectRead]:
+) -> AsyncIterable[dict[str, Any]]:
     async def process():
         project = await _get_project(project_id, db)
         doc = await db.get(Document, document_id)
@@ -199,4 +207,4 @@ async def delete_document(
         await db.commit()
         return await _refresh_project_from_documents(project, db)
 
-    return single_item_stream(await process())
+    return single_item_stream(process)

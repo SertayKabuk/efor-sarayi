@@ -2,6 +2,7 @@ import logging
 import shutil
 from collections.abc import AsyncIterable
 from pathlib import Path
+from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -24,6 +25,10 @@ from app.services.vector_store import vector_store
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/v1/projects", tags=["projects"])
+
+
+def _project_payload(project: Project) -> dict[str, Any]:
+    return ProjectRead.model_validate(project).model_dump(mode="json")
 
 
 async def _sync_embedding(project: Project):
@@ -68,16 +73,16 @@ async def get_project(project_id: UUID, db: AsyncSession = Depends(get_db)):
 async def create_project(
     data: ProjectCreate,
     db: AsyncSession = Depends(get_db),
-) -> AsyncIterable[ProjectRead]:
+) -> AsyncIterable[dict[str, Any]]:
     async def process():
         project = Project(**data.model_dump())
         db.add(project)
         await db.commit()
         await db.refresh(project)
         await _sync_embedding(project)
-        return project
+        return _project_payload(project)
 
-    return single_item_stream(await process())
+    return single_item_stream(process)
 
 
 @router.put("/{project_id}", response_class=EventSourceResponse)
@@ -85,7 +90,7 @@ async def update_project(
     project_id: UUID,
     data: ProjectUpdate,
     db: AsyncSession = Depends(get_db),
-) -> AsyncIterable[ProjectRead]:
+) -> AsyncIterable[dict[str, Any]]:
     async def process():
         project = await db.get(Project, project_id)
         if not project:
@@ -97,9 +102,9 @@ async def update_project(
         await db.commit()
         await db.refresh(project)
         await _sync_embedding(project)
-        return project
+        return _project_payload(project)
 
-    return single_item_stream(await process())
+    return single_item_stream(process)
 
 
 @router.delete("/{project_id}", status_code=204)
@@ -121,7 +126,7 @@ async def delete_project(project_id: UUID, db: AsyncSession = Depends(get_db)):
 @router.post("/sync-embeddings", response_class=EventSourceResponse)
 async def sync_embeddings(
     db: AsyncSession = Depends(get_db),
-) -> AsyncIterable[EmbeddingSyncSummary]:
+) -> AsyncIterable[dict[str, Any]]:
     """Regenerate embeddings for all projects."""
     async def process():
         result = await db.execute(select(Project))
@@ -134,6 +139,10 @@ async def sync_embeddings(
             except Exception:
                 logger.warning("Failed to sync embedding for project %s", project.id, exc_info=True)
                 failed += 1
-        return EmbeddingSyncSummary(synced=synced, failed=failed, total=len(projects))
+        return EmbeddingSyncSummary(
+            synced=synced,
+            failed=failed,
+            total=len(projects),
+        ).model_dump(mode="json")
 
-    return single_item_stream(await process())
+    return single_item_stream(process)

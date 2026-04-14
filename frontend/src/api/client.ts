@@ -62,6 +62,11 @@ async function postSse<T>(
     body: body instanceof FormData ? body : JSON.stringify(body),
   });
 
+  if (response.status === 401) {
+    window.location.reload();
+    throw buildError("Unauthorized.");
+  }
+
   if (!response.ok) {
     const text = await response.text();
     throw buildError(text || "Request failed.");
@@ -92,6 +97,13 @@ async function postSse<T>(
 
     if (done) {
       break;
+    }
+  }
+
+  if (buffer.trim()) {
+    const parsed = parseSseMessage(buffer);
+    if (parsed) {
+      result = parsed as T;
     }
   }
 
