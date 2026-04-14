@@ -7,7 +7,10 @@ import type {
   EstimationResponse,
 } from "../types/project";
 
-const api = axios.create({ baseURL: "/api/v1", withCredentials: true });
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "/efor-sarayi-api/api/v1";
+
+const api = axios.create({ baseURL: API_BASE_URL, withCredentials: true });
 
 api.interceptors.response.use(
   (res) => res,
@@ -70,7 +73,7 @@ export function getDocumentDownloadUrl(
   projectId: string,
   documentId: string
 ): string {
-  return `/api/v1/projects/${projectId}/documents/${documentId}/download`;
+  return `${API_BASE_URL}/projects/${projectId}/documents/${documentId}/download`;
 }
 
 export async function deleteDocument(
