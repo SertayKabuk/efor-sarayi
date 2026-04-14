@@ -100,7 +100,7 @@ async function postSse<T>(
     }
   }
 
-  if (buffer.trim()) {
+  if (result === undefined && buffer.trim()) {
     const parsed = parseSseMessage(buffer);
     if (parsed) {
       result = parsed as T;
