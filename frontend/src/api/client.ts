@@ -40,7 +40,11 @@ function parseSseMessage(block: string): unknown | null {
     return null;
   }
 
-  return JSON.parse(dataLines.join("\n"));
+  try {
+    return JSON.parse(dataLines.join("\n"));
+  } catch {
+    throw buildError("Received an invalid SSE JSON payload.");
+  }
 }
 
 async function postSse<T>(

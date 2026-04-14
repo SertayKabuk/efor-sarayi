@@ -18,7 +18,7 @@ from app.schemas.project import (
     ProjectRead,
     ProjectUpdate,
 )
-from app.sse import stream
+from app.sse import single_item_stream
 from app.services.embedding import generate_embedding, build_embedding_text
 from app.services.vector_store import vector_store
 
@@ -77,7 +77,7 @@ async def create_project(
         await _sync_embedding(project)
         return project
 
-    return stream(await process())
+    return single_item_stream(await process())
 
 
 @router.put("/{project_id}", response_class=EventSourceResponse)
@@ -99,7 +99,7 @@ async def update_project(
         await _sync_embedding(project)
         return project
 
-    return stream(await process())
+    return single_item_stream(await process())
 
 
 @router.delete("/{project_id}", status_code=204)
@@ -136,4 +136,4 @@ async def sync_embeddings(
                 failed += 1
         return EmbeddingSyncSummary(synced=synced, failed=failed, total=len(projects))
 
-    return stream(await process())
+    return single_item_stream(await process())

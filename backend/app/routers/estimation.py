@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.project import Project
 from app.schemas.project import EstimationRequest, EstimationResponse
-from app.sse import stream
+from app.sse import single_item_stream
 from app.services.document_analyzer import ExtractedProjectInfo, extract_project_info
 from app.services.embedding import generate_embedding
 from app.services.estimator import estimate_effort
@@ -47,10 +47,10 @@ async def extract_from_documents(files: list[UploadFile]) -> AsyncIterable[Extra
                     raise HTTPException(status_code=400, detail=f"File {filename} exceeds 50 MB limit")
 
                 with tempfile.NamedTemporaryFile(suffix=ext, delete=False) as tmp:
-                    tmp.write(content)
                     tmp_path = Path(tmp.name)
+                    temp_files.append(tmp_path)
+                    tmp.write(content)
 
-                temp_files.append(tmp_path)
                 doc_list.append({"filename": filename, "file_path": str(tmp_path)})
 
             return await extract_project_info(doc_list)
@@ -61,7 +61,7 @@ async def extract_from_documents(files: list[UploadFile]) -> AsyncIterable[Extra
                 except Exception:
                     pass
 
-    return stream(await process())
+    return single_item_stream(await process())
 
 
 @router.post("/estimate", response_class=EventSourceResponse)
@@ -111,4 +111,4 @@ async def estimate(
 
         return await estimate_effort(data, similar_projects)
 
-    return stream(await process())
+    return single_item_stream(await process())

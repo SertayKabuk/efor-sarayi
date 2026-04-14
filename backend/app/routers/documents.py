@@ -13,7 +13,7 @@ from app.config import settings
 from app.database import get_db
 from app.models.project import Document, Project
 from app.schemas.project import DocumentRead, ProjectRead
-from app.sse import stream
+from app.sse import single_item_stream
 from app.services.document_analyzer import extract_project_info
 from app.services.embedding import build_embedding_text, generate_embedding
 from app.services.vector_store import vector_store
@@ -161,7 +161,7 @@ async def upload_documents(
         await db.commit()
         return await _refresh_project_from_documents(project, db)
 
-    return stream(await process())
+    return single_item_stream(await process())
 
 
 @router.get("/{document_id}/download")
@@ -199,4 +199,4 @@ async def delete_document(
         await db.commit()
         return await _refresh_project_from_documents(project, db)
 
-    return stream(await process())
+    return single_item_stream(await process())
