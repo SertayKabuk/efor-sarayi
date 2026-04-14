@@ -34,6 +34,8 @@ services:
       AZURE_EMBEDDING_DEPLOYMENT_NAME: ${AZURE_EMBEDDING_DEPLOYMENT_NAME}
       AZURE_EMBEDDING_API_KEY: ${AZURE_EMBEDDING_API_KEY}
       ALLOWED_DOMAIN: ${ALLOWED_DOMAIN}
+      ALLOW_SEED_BYPASS_AUTH: ${ALLOW_SEED_BYPASS_AUTH:-false}
+      SEED_AUTH_TOKEN: ${SEED_AUTH_TOKEN:-}
     volumes:
       - ./${UPLOADS_DIR:-uploads}:/app/uploads
     depends_on:
@@ -54,7 +56,7 @@ services:
       - "traefik.http.services.efor-sarayi-backend.loadbalancer.server.port=8080"
     networks:
       - traefik-network
-
+      - db_network
   frontend:
     restart: unless-stopped
     image: ghcr.io/sertaykabuk/efor-sarayi/frontend:main
@@ -77,3 +79,6 @@ services:
 networks:
   traefik-network:
     external: true
+  db_network:
+    external: true
+

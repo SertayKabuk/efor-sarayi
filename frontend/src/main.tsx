@@ -7,11 +7,12 @@ import App from "./App";
 import "./index.css";
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+const appBasePath = import.meta.env.VITE_APP_BASE_PATH || "/efor-sarayi";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <GoogleOAuthProvider clientId={googleClientId}>
-      <BrowserRouter>
+      <BrowserRouter basename={appBasePath}>
         <AuthProvider>
           <App />
         </AuthProvider>
