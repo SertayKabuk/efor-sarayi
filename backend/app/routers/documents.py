@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +11,7 @@ from app.config import settings
 from app.database import get_db
 from app.models.project import Document, Project
 from app.schemas.project import DocumentRead, ProjectRead
+from app.sse import client_wants_sse, sse_response
 from app.services.document_analyzer import extract_project_info
 from app.services.embedding import build_embedding_text, generate_embedding
 from app.services.vector_store import vector_store
@@ -133,31 +134,39 @@ async def list_documents(project_id: UUID, db: AsyncSession = Depends(get_db)):
 
 @router.post("", response_model=ProjectRead)
 async def upload_documents(
+    request: Request,
     project_id: UUID,
     files: list[UploadFile],
     db: AsyncSession = Depends(get_db),
 ):
-    project = await _get_project(project_id, db)
+    async def process():
+        project = await _get_project(project_id, db)
 
-    for file in files:
-        filename = file.filename or "unknown"
-        _check_extension(filename)
-        content = await file.read()
-        if len(content) > MAX_FILE_SIZE:
-            raise HTTPException(status_code=400, detail=f"File {filename} exceeds 50 MB limit")
+        for file in files:
+            filename = file.filename or "unknown"
+            _check_extension(filename)
+            content = await file.read()
+            if len(content) > MAX_FILE_SIZE:
+                raise HTTPException(status_code=400, detail=f"File {filename} exceeds 50 MB limit")
 
-        file_path = _save_file(project_id, filename, content)
-        doc = Document(
-            project_id=project.id,
-            filename=filename,
-            file_path=file_path,
+            file_path = _save_file(project_id, filename, content)
+            doc = Document(
+                project_id=project.id,
+                filename=filename,
+                file_path=file_path,
+            )
+            db.add(doc)
+
+        await db.commit()
+        return await _refresh_project_from_documents(project, db)
+
+    if client_wants_sse(request):
+        return sse_response(
+            request,
+            process,
+            start_message="Uploading documents and extracting project details...",
         )
-        db.add(doc)
-
-    await db.commit()
-
-    project = await _refresh_project_from_documents(project, db)
-    return project
+    return await process()
 
 
 @router.get("/{document_id}/download")
@@ -180,18 +189,26 @@ async def download_document(
 
 @router.delete("/{document_id}", response_model=ProjectRead)
 async def delete_document(
+    request: Request,
     project_id: UUID,
     document_id: UUID,
     db: AsyncSession = Depends(get_db),
 ):
-    project = await _get_project(project_id, db)
-    doc = await db.get(Document, document_id)
-    if not doc or doc.project_id != project_id:
-        raise HTTPException(status_code=404, detail="Document not found")
+    async def process():
+        project = await _get_project(project_id, db)
+        doc = await db.get(Document, document_id)
+        if not doc or doc.project_id != project_id:
+            raise HTTPException(status_code=404, detail="Document not found")
 
-    _delete_file(doc.file_path)
-    await db.delete(doc)
-    await db.commit()
+        _delete_file(doc.file_path)
+        await db.delete(doc)
+        await db.commit()
+        return await _refresh_project_from_documents(project, db)
 
-    project = await _refresh_project_from_documents(project, db)
-    return project
+    if client_wants_sse(request):
+        return sse_response(
+            request,
+            process,
+            start_message="Removing document and refreshing project details...",
+        )
+    return await process()
