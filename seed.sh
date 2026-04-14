@@ -1,13 +1,25 @@
 #!/bin/bash
 
-# Load environment variables automatically (root first, then backend overrides).
+# Load environment variables automatically.
+# Precedence: backend defaults first, then root overrides for local/dev/docker runs.
+# Handles CRLF env files safely (common on Windows).
+load_env_file() {
+  local file="$1"
+  if [ -f "$file" ]; then
+    # shellcheck disable=SC1090
+    . <(tr -d '\r' < "$file")
+  fi
+}
+
 set -a
-[ -f ./.env ] && . ./.env
-[ -f ./backend/.env ] && . ./backend/.env
+load_env_file ./backend/.env
+load_env_file ./.env
 set +a
 
 API="http://localhost:8080/api/v1/projects"
 SEED_AUTH_TOKEN="${SEED_AUTH_TOKEN:-}"
+# Normalize accidental CR from mixed line endings
+SEED_AUTH_TOKEN="${SEED_AUTH_TOKEN//$'\r'/}"
 PYTHON_BIN="$(command -v python3 || command -v python)"
 
 if [ -z "$PYTHON_BIN" ]; then
@@ -17,21 +29,30 @@ fi
 
 post() {
   local name="$1"
-  local resp
+  local payload="$2"
+  local body_file
+  local status
+  body_file="$(mktemp)"
+
   if [ -n "$SEED_AUTH_TOKEN" ]; then
-    resp=$(curl -sf -X POST "$API" \
+    status=$(curl -sS -o "$body_file" -w "%{http_code}" -X POST "$API" \
       -H "Content-Type: application/json" \
       -H "X-Seed-Token: $SEED_AUTH_TOKEN" \
-      -d "$2")
+      -d "$payload")
   else
-    resp=$(curl -sf -X POST "$API" -H "Content-Type: application/json" -d "$2")
+    status=$(curl -sS -o "$body_file" -w "%{http_code}" -X POST "$API" -H "Content-Type: application/json" -d "$payload")
   fi
-  if [ $? -eq 0 ]; then
+
+  if [ "$status" -ge 200 ] && [ "$status" -lt 300 ]; then
     echo "OK: $name"
   else
     echo "FAIL: $name"
-    echo "$resp"
+    echo "HTTP $status"
+    cat "$body_file"
+    echo ""
   fi
+
+  rm -f "$body_file"
 }
 
 post "E-Commerce Platform" '{
