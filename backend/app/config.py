@@ -4,6 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str = Field(validation_alias="DATABASE_URL")
+    root_path: str = Field(default="", validation_alias=AliasChoices("ROOT_PATH", "APP_ROOT_PATH"))
     openai_api_key: str = Field(validation_alias="OPENAI_API_KEY")
     azure_endpoint: str = Field(validation_alias="AZURE_ENDPOINT")
     azure_deployment_name: str = Field(validation_alias="AZURE_DEPLOYMENT_NAME")
@@ -23,6 +24,21 @@ class Settings(BaseSettings):
     @classmethod
     def normalize_allowed_domain(cls, value: str) -> str:
         return str(value).strip().lstrip("@").lower()
+
+    @field_validator("root_path", mode="before")
+    @classmethod
+    def normalize_root_path(cls, value: str | None) -> str:
+        if value is None:
+            return ""
+
+        normalized = str(value).strip()
+        if normalized in {"", "/"}:
+            return ""
+
+        if not normalized.startswith("/"):
+            normalized = f"/{normalized}"
+
+        return normalized.rstrip("/")
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

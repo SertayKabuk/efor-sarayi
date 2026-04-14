@@ -4,6 +4,7 @@ from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import get_current_user
+from app.config import settings
 from app.routers import auth, documents, estimation, projects
 
 
@@ -12,7 +13,12 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="Effort Estimator API", version="1.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="Effort Estimator API",
+    version="1.0.0",
+    lifespan=lifespan,
+    root_path=settings.root_path,
+)
 
 app.add_middleware(
     CORSMiddleware,
