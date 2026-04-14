@@ -98,6 +98,11 @@ alembic upgrade head
 uvicorn app.main:app --reload --port 8080
 ```
 
+## Native SSE Responses
+
+The AI-backed mutating endpoints stream native FastAPI SSE responses (`fastapi.sse.EventSourceResponse`).
+Each stream emits a single JSON message payload and does not include legacy custom event names or non-SSE fallbacks.
+
 ## Database Migrations
 
 ```bash
