@@ -1,4 +1,4 @@
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     allowed_domain: str = Field(validation_alias="ALLOWED_DOMAIN")
     allow_seed_bypass_auth: bool = Field(validation_alias="ALLOW_SEED_BYPASS_AUTH")
     seed_auth_token: str = Field(validation_alias="SEED_AUTH_TOKEN")
+
+    @field_validator("allowed_domain", mode="before")
+    @classmethod
+    def normalize_allowed_domain(cls, value: str) -> str:
+        return str(value).strip().lstrip("@").lower()
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

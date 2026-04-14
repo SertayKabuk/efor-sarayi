@@ -8,6 +8,9 @@ import {
 import type { ReactNode } from "react";
 import axios from "axios";
 
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "/efor-sarayi-api/api/v1";
+
 interface User {
   email: string;
   name: string;
@@ -33,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     axios
-      .get<User>("/api/v1/auth/me", { withCredentials: true })
+      .get<User>(`${API_BASE_URL}/auth/me`, { withCredentials: true })
       .then(({ data }) => setUser(data))
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
@@ -41,7 +44,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (credential: string) => {
     const { data } = await axios.post<User>(
-      "/api/v1/auth/google",
+      `${API_BASE_URL}/auth/google`,
       { credential },
       { withCredentials: true }
     );
@@ -49,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await axios.post("/api/v1/auth/logout", {}, { withCredentials: true });
+    await axios.post(`${API_BASE_URL}/auth/logout`, {}, { withCredentials: true });
     setUser(null);
   }, []);
 

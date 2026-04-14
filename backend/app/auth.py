@@ -11,6 +11,14 @@ ALGORITHM = "HS256"
 TOKEN_EXPIRE_DAYS = 7
 
 
+def _normalize_domain(domain: str) -> str:
+    return domain.strip().lstrip("@").lower()
+
+
+def _normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
 def verify_google_token(credential: str) -> dict:
     """Verify a Google ID token and return the payload."""
     try:
@@ -22,11 +30,13 @@ def verify_google_token(credential: str) -> dict:
     except Exception as exc:
         raise HTTPException(status_code=401, detail=f"Invalid Google token: {exc}")
 
-    email: str = payload.get("email", "")
-    if not email.endswith(f"@{settings.allowed_domain}"):
+    email = _normalize_email(payload.get("email", ""))
+    allowed_domain = _normalize_domain(settings.allowed_domain)
+
+    if not email.endswith(f"@{allowed_domain}"):
         raise HTTPException(
             status_code=403,
-            detail=f"Only @{settings.allowed_domain} accounts are allowed",
+            detail=f"Only @{allowed_domain} accounts are allowed",
         )
 
     if not payload.get("email_verified"):
