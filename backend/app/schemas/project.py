@@ -112,6 +112,7 @@ class EstimationRequest(BaseModel):
     complexity: Literal["low", "medium", "high", "very_high"]
     constraints: list[str] = []
     notes: str | None = None
+    custom_prompt: str | None = None
 
 
 class EmbeddingSyncSummary(BaseModel):

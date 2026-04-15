@@ -1,4 +1,7 @@
+import { useState } from "react";
 import type { EstimationResponse } from "../types/project";
+import { exportEstimate } from "../api/client";
+import ExportModal from "./ExportModal";
 
 interface Props {
   result: EstimationResponse;
@@ -17,6 +20,8 @@ const impactColors: Record<string, string> = {
 };
 
 export default function EstimationResult({ result }: Props) {
+  const [showExport, setShowExport] = useState(false);
+
   return (
     <div className="space-y-4">
       {/* Summary */}
@@ -25,13 +30,21 @@ export default function EstimationResult({ result }: Props) {
           <h2 className="text-lg font-semibold text-gray-800">
             Estimation Result
           </h2>
-          <span
-            className={`px-3 py-1 rounded-full text-xs font-medium ${
-              confidenceColors[result.confidence] || ""
-            }`}
-          >
-            {result.confidence} confidence
-          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowExport(true)}
+              className="bg-green-600 text-white px-3 py-1 rounded text-xs font-medium hover:bg-green-700"
+            >
+              Export
+            </button>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-medium ${
+                confidenceColors[result.confidence] || ""
+              }`}
+            >
+              {result.confidence} confidence
+            </span>
+          </div>
         </div>
         <div className="flex justify-center gap-8 py-4">
           <div className="text-center">
@@ -207,6 +220,13 @@ export default function EstimationResult({ result }: Props) {
             ))}
           </div>
         </div>
+      )}
+
+      {showExport && (
+        <ExportModal
+          onExport={(customPrompt) => exportEstimate(result, customPrompt || undefined)}
+          onClose={() => setShowExport(false)}
+        />
       )}
     </div>
   );

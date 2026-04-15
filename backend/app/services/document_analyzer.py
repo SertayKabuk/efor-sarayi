@@ -55,11 +55,15 @@ def _build_file_content_block(filename: str, file_path: str) -> dict:
     }
 
 
-async def extract_project_info(documents: list[dict[str, str]]) -> ExtractedProjectInfo:
+async def extract_project_info(
+    documents: list[dict[str, str]],
+    custom_prompt: str | None = None,
+) -> ExtractedProjectInfo:
     """Extract project info by sending files directly to the LLM.
 
     Args:
         documents: list of {"filename": str, "file_path": str}
+        custom_prompt: optional user instructions to guide the extraction
     """
     content: list[dict] = []
 
@@ -91,7 +95,8 @@ Extract the following:
 - questions: Ambiguous areas or clarifying questions that need answers for accurate estimation
 - notes: Any additional important context not captured above
 
-Combine and synthesize information from all documents into a single coherent project definition.""",
+Combine and synthesize information from all documents into a single coherent project definition."""
+        + (f"\n\nADDITIONAL USER INSTRUCTIONS:\n{custom_prompt}" if custom_prompt else ""),
     })
 
     response = await client.responses.parse(

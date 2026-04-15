@@ -81,6 +81,9 @@ Provide:
 
 Make the implementation plan realistic and actionable. The effort_person_days should equal the sum of all phase effort_days. Questions should identify the most important unknowns that would change the estimate if answered differently."""
 
+    if request.custom_prompt:
+        prompt += f"\n\nADDITIONAL USER INSTRUCTIONS:\n{request.custom_prompt}"
+
     response = await client.responses.parse(
         model=settings.azure_deployment_name,
         input=[{"role": "user", "content": prompt}],

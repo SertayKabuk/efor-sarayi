@@ -67,6 +67,7 @@ export interface EstimationRequest {
   complexity: "low" | "medium" | "high" | "very_high";
   constraints: string[];
   notes: string;
+  custom_prompt: string;
 }
 
 export interface SimilarProject {

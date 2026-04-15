@@ -24,6 +24,7 @@ export default function EstimationForm({ onSubmit, loading }: Props) {
     complexity: "medium",
     constraints: [],
     notes: "",
+    custom_prompt: "",
   });
   const [files, setFiles] = useState<File[]>([]);
   const [extracting, setExtracting] = useState(false);
@@ -59,7 +60,7 @@ export default function EstimationForm({ onSubmit, loading }: Props) {
     setExtracting(true);
     setExtractError("");
     try {
-      const extracted = await extractFromDocuments(files);
+      const extracted = await extractFromDocuments(files, form.custom_prompt || undefined);
       setForm({
         name: extracted.name || form.name,
         description: extracted.description || form.description,
@@ -70,6 +71,7 @@ export default function EstimationForm({ onSubmit, loading }: Props) {
         complexity: extracted.complexity || form.complexity,
         constraints: extracted.constraints?.length ? extracted.constraints : form.constraints,
         notes: extracted.notes || form.notes,
+        custom_prompt: form.custom_prompt,
       });
     } catch {
       setExtractError("Failed to extract project info from documents.");
@@ -136,6 +138,25 @@ export default function EstimationForm({ onSubmit, loading }: Props) {
         {extractError && (
           <p className="mt-2 text-sm text-red-600">{extractError}</p>
         )}
+      </div>
+
+      {/* Custom AI Instructions */}
+      <div className="border-b pb-4">
+        <h2 className="text-lg font-semibold text-gray-800 mb-1">
+          AI Instructions (optional)
+        </h2>
+        <p className="text-xs text-gray-500 mb-3">
+          Guide the AI analysis. For example: &quot;Focus only on the backend
+          modules&quot; or &quot;Ignore the reporting section&quot;.
+        </p>
+        <textarea
+          name="custom_prompt"
+          value={form.custom_prompt}
+          onChange={handleChange}
+          rows={3}
+          className="w-full border rounded px-3 py-2 text-sm"
+          placeholder="e.g. We only focus on the payment and auth modules, ignore the admin dashboard section..."
+        />
       </div>
 
       {/* Step 2: Review / Edit */}

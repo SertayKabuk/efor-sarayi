@@ -9,6 +9,7 @@ export default function ImportProjectPage() {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [files, setFiles] = useState<File[]>([]);
+  const [customPrompt, setCustomPrompt] = useState("");
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState("");
 
@@ -49,7 +50,7 @@ export default function ImportProjectPage() {
       });
 
       // upload documents - this triggers AI extraction and updates the project
-      await uploadDocuments(project.id, files);
+      await uploadDocuments(project.id, files, customPrompt || undefined);
       navigate(`/projects/${project.id}/edit`);
     } catch {
       setError("Failed to import project. Check file types and try again.");
@@ -97,6 +98,23 @@ export default function ImportProjectPage() {
             ))}
           </ul>
         )}
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            AI Instructions (optional)
+          </label>
+          <p className="text-xs text-gray-500 mb-2">
+            Guide the AI analysis. For example: &quot;Focus only on the backend
+            modules&quot; or &quot;Ignore the reporting section&quot;.
+          </p>
+          <textarea
+            value={customPrompt}
+            onChange={(e) => setCustomPrompt(e.target.value)}
+            rows={3}
+            className="w-full border rounded px-3 py-2 text-sm"
+            placeholder="e.g. We only focus on the payment and auth modules, ignore the admin dashboard section..."
+          />
+        </div>
 
         <div className="flex gap-3">
           <div>

@@ -2,7 +2,7 @@ import tempfile
 from pathlib import Path
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
@@ -21,7 +21,10 @@ MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
 
 
 @router.post("/extract", response_model=EstimationRequest)
-async def extract_from_documents(files: list[UploadFile]) -> EstimationRequest:
+async def extract_from_documents(
+    files: list[UploadFile],
+    custom_prompt: str | None = Form(None),
+) -> EstimationRequest:
     """Extract project info from uploaded documents without persisting anything."""
 
     if not files:
@@ -49,7 +52,7 @@ async def extract_from_documents(files: list[UploadFile]) -> EstimationRequest:
 
             doc_list.append({"filename": filename, "file_path": str(tmp_path)})
 
-        extracted = await extract_project_info(doc_list)
+        extracted = await extract_project_info(doc_list, custom_prompt=custom_prompt)
         return EstimationRequest.model_validate(extracted.model_dump())
     finally:
         for tmp in temp_files:

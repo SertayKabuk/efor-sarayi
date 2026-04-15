@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { deleteProject, getDocuments, getProject } from "../api/client";
+import { deleteProject, exportProject, getDocuments, getProject } from "../api/client";
 import { getDocumentDownloadUrl } from "../api/client";
 import type { DocumentInfo, Project } from "../types/project";
+import ExportModal from "../components/ExportModal";
 
 const complexityColors: Record<string, string> = {
   low: "bg-green-100 text-green-800",
@@ -37,6 +38,7 @@ export default function ProjectViewPage() {
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showExport, setShowExport] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -84,6 +86,12 @@ export default function ProjectViewPage() {
           </div>
         </div>
         <div className="flex gap-2">
+          <button
+            onClick={() => setShowExport(true)}
+            className="bg-green-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-green-700"
+          >
+            Export
+          </button>
           <Link
             to={`/projects/${project.id}/edit`}
             className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-700"
@@ -246,6 +254,13 @@ export default function ProjectViewPage() {
             ))}
           </ul>
         </div>
+      )}
+
+      {showExport && (
+        <ExportModal
+          onExport={(customPrompt) => exportProject(project, customPrompt || undefined)}
+          onClose={() => setShowExport(false)}
+        />
       )}
     </div>
   );

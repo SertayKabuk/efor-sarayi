@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Effort Palace favicon</title>
+  <desc id="desc">A rounded blue square with a white palace silhouette, side towers, and a golden arched gate.</desc>
+  <defs>
+    <linearGradient id="bg" x1="10" y1="8" x2="54" y2="56" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1d4ed8" />
+      <stop offset="1" stop-color="#38bdf8" />
+    </linearGradient>
+    <linearGradient id="shine" x1="16" y1="10" x2="44" y2="34" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.32" />
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0" />
+    </linearGradient>
+    <linearGradient id="gate" x1="26" y1="32" x2="38" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#fcd34d" />
+      <stop offset="1" stop-color="#f59e0b" />
+    </linearGradient>
+  </defs>
+
+  <rect x="4" y="4" width="56" height="56" rx="16" fill="url(#bg)" />
+  <path d="M16 10C25 12 33 17 40 25C34 23 27 22 19 22C17.3 22 15.8 21.9 14.4 21.8C13.1 21.7 12 20.7 12 19.3V14C12 11.7 13.8 9.9 16 10Z" fill="url(#shine)" />
+
+  <rect x="14" y="29" width="36" height="19" rx="2.5" fill="#ffffff" />
+  <rect x="13" y="22" width="10" height="26" rx="2" fill="#ffffff" />
+  <rect x="41" y="22" width="10" height="26" rx="2" fill="#ffffff" />
+  <rect x="25" y="24" width="14" height="24" rx="2" fill="#ffffff" />
+  <path d="M24 24C24 18.5 27.6 14 32 14C36.4 14 40 18.5 40 24H24Z" fill="#ffffff" />
+
+  <rect x="14.2" y="19" width="2.6" height="4" rx="1" fill="#ffffff" />
+  <rect x="17.9" y="18" width="2.6" height="5" rx="1" fill="#ffffff" />
+  <rect x="21.6" y="19" width="2.6" height="4" rx="1" fill="#ffffff" />
+  <rect x="40.8" y="19" width="2.6" height="4" rx="1" fill="#ffffff" />
+  <rect x="44.5" y="18" width="2.6" height="5" rx="1" fill="#ffffff" />
+  <rect x="48.2" y="19" width="2.6" height="4" rx="1" fill="#ffffff" />
+
+  <rect x="17" y="33" width="3.8" height="7" rx="1.5" fill="#bfdbfe" />
+  <rect x="43.2" y="33" width="3.8" height="7" rx="1.5" fill="#bfdbfe" />
+  <circle cx="32" cy="27" r="2.2" fill="#93c5fd" />
+
+  <path d="M26 48V39.2C26 35 28.7 32 32 32C35.3 32 38 35 38 39.2V48H26Z" fill="url(#gate)" />
+  <path d="M29.8 48V38.3C29.8 36.6 30.8 35.2 32 35.2C33.2 35.2 34.2 36.6 34.2 38.3V48H29.8Z" fill="#fef3c7" fill-opacity="0.45" />
+  <rect x="11.5" y="48" width="41" height="2.8" rx="1.4" fill="#dbeafe" fill-opacity="0.7" />
+  <circle cx="32" cy="11" r="1.6" fill="#fcd34d" />
+</svg>

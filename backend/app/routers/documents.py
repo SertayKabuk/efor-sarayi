@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -76,6 +76,7 @@ def _delete_file(file_path: str) -> None:
 async def _refresh_project_from_documents(
     project: Project,
     db: AsyncSession,
+    custom_prompt: str | None = None,
 ) -> dict[str, Any]:
     """Send all documents to the LLM and update project fields."""
     result = await db.execute(
@@ -87,7 +88,7 @@ async def _refresh_project_from_documents(
         return _project_payload(project)
 
     doc_list = [{"filename": d.filename, "file_path": d.file_path} for d in docs]
-    extracted = await extract_project_info(doc_list)
+    extracted = await extract_project_info(doc_list, custom_prompt=custom_prompt)
 
     project.name = extracted.name
     project.description = extracted.description
@@ -143,6 +144,7 @@ async def list_documents(project_id: UUID, db: AsyncSession = Depends(get_db)):
 async def upload_documents(
     project_id: UUID,
     files: list[UploadFile],
+    custom_prompt: str | None = Form(None),
     db: AsyncSession = Depends(get_db),
 ) -> dict[str, Any]:
     project = await _get_project(project_id, db)
@@ -163,7 +165,7 @@ async def upload_documents(
         db.add(doc)
 
     await db.commit()
-    return await _refresh_project_from_documents(project, db)
+    return await _refresh_project_from_documents(project, db, custom_prompt=custom_prompt)
 
 
 @router.get("/{document_id}/download")

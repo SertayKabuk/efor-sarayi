@@ -39,10 +39,12 @@ export async function getDocuments(projectId: string): Promise<DocumentInfo[]> {
 
 export async function uploadDocuments(
   projectId: string,
-  files: File[]
+  files: File[],
+  customPrompt?: string
 ): Promise<Project> {
   const form = new FormData();
   files.forEach((f) => form.append("files", f));
+  if (customPrompt) form.append("custom_prompt", customPrompt);
   return requestJson<Project>(`/projects/${projectId}/documents`, {
     method: "POST",
     body: form,
@@ -66,10 +68,12 @@ export async function deleteDocument(
 }
 
 export async function extractFromDocuments(
-  files: File[]
+  files: File[],
+  customPrompt?: string
 ): Promise<EstimationRequest> {
   const form = new FormData();
   files.forEach((f) => form.append("files", f));
+  if (customPrompt) form.append("custom_prompt", customPrompt);
   return requestJson<EstimationRequest>("/extract", {
     method: "POST",
     body: form,
@@ -83,4 +87,32 @@ export async function estimateEffort(
     method: "POST",
     body: request,
   });
+}
+
+export async function exportProject(
+  project: Project,
+  customPrompt?: string
+): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/export/project`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", Accept: "text/plain" },
+    body: JSON.stringify({ project, custom_prompt: customPrompt || null }),
+  });
+  if (!response.ok) throw new Error("Export failed");
+  return response.text();
+}
+
+export async function exportEstimate(
+  estimate: EstimationResponse,
+  customPrompt?: string
+): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/export/estimate`, {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json", Accept: "text/plain" },
+    body: JSON.stringify({ estimate, custom_prompt: customPrompt || null }),
+  });
+  if (!response.ok) throw new Error("Export failed");
+  return response.text();
 }
