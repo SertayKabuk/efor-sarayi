@@ -6,10 +6,7 @@ import {
   useState,
 } from "react";
 import type { ReactNode } from "react";
-import axios from "axios";
-
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "/efor-sarayi-api/api/v1";
+import { requestJson, requestVoid } from "../api/http";
 
 interface User {
   email: string;
@@ -35,24 +32,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    axios
-      .get<User>(`${API_BASE_URL}/auth/me`, { withCredentials: true })
-      .then(({ data }) => setUser(data))
+    requestJson<User>("/auth/me", { reloadOnUnauthorized: false })
+      .then((data) => setUser(data))
       .catch(() => setUser(null))
       .finally(() => setLoading(false));
   }, []);
 
   const login = useCallback(async (credential: string) => {
-    const { data } = await axios.post<User>(
-      `${API_BASE_URL}/auth/google`,
-      { credential },
-      { withCredentials: true }
-    );
+    const data = await requestJson<User>("/auth/google", {
+      method: "POST",
+      body: { credential },
+      reloadOnUnauthorized: false,
+    });
     setUser(data);
   }, []);
 
   const logout = useCallback(async () => {
-    await axios.post(`${API_BASE_URL}/auth/logout`, {}, { withCredentials: true });
+    await requestVoid("/auth/logout", {
+      method: "POST",
+      body: {},
+      reloadOnUnauthorized: false,
+    });
     setUser(null);
   }, []);
 

@@ -91,7 +91,7 @@ efor-sarayi/
     alembic/        Database migrations
   frontend/         React frontend
     src/
-      api/          API client (axios)
+      api/          API client (fetch)
       auth/         Google OAuth context
       components/   Reusable UI components
       pages/        Route pages

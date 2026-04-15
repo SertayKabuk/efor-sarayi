@@ -1,12 +1,10 @@
 import logging
-from collections.abc import AsyncIterable
 from pathlib import Path
 from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from fastapi.responses import FileResponse
-from fastapi.sse import EventSourceResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,7 +12,6 @@ from app.config import settings
 from app.database import get_db
 from app.models.project import Document, Project
 from app.schemas.project import DocumentRead, ProjectRead
-from app.sse import single_item_stream
 from app.services.document_analyzer import extract_project_info
 from app.services.embedding import build_embedding_text, generate_embedding
 from app.services.vector_store import vector_store
@@ -142,34 +139,31 @@ async def list_documents(project_id: UUID, db: AsyncSession = Depends(get_db)):
     return result.scalars().all()
 
 
-@router.post("", response_class=EventSourceResponse)
+@router.post("", response_model=ProjectRead)
 async def upload_documents(
     project_id: UUID,
     files: list[UploadFile],
     db: AsyncSession = Depends(get_db),
-) -> AsyncIterable[dict[str, Any]]:
-    async def process():
-        project = await _get_project(project_id, db)
+) -> dict[str, Any]:
+    project = await _get_project(project_id, db)
 
-        for file in files:
-            filename = file.filename or "unknown"
-            _check_extension(filename)
-            content = await file.read()
-            if len(content) > MAX_FILE_SIZE:
-                raise HTTPException(status_code=400, detail=f"File {filename} exceeds 50 MB limit")
+    for file in files:
+        filename = file.filename or "unknown"
+        _check_extension(filename)
+        content = await file.read()
+        if len(content) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=400, detail=f"File {filename} exceeds 50 MB limit")
 
-            file_path = _save_file(project_id, filename, content)
-            doc = Document(
-                project_id=project.id,
-                filename=filename,
-                file_path=file_path,
-            )
-            db.add(doc)
+        file_path = _save_file(project_id, filename, content)
+        doc = Document(
+            project_id=project.id,
+            filename=filename,
+            file_path=file_path,
+        )
+        db.add(doc)
 
-        await db.commit()
-        return await _refresh_project_from_documents(project, db)
-
-    return single_item_stream(process)
+    await db.commit()
+    return await _refresh_project_from_documents(project, db)
 
 
 @router.get("/{document_id}/download")
@@ -190,21 +184,18 @@ async def download_document(
     return FileResponse(path, filename=doc.filename)
 
 
-@router.delete("/{document_id}", response_class=EventSourceResponse)
+@router.delete("/{document_id}", response_model=ProjectRead)
 async def delete_document(
     project_id: UUID,
     document_id: UUID,
     db: AsyncSession = Depends(get_db),
-) -> AsyncIterable[dict[str, Any]]:
-    async def process():
-        project = await _get_project(project_id, db)
-        doc = await db.get(Document, document_id)
-        if not doc or doc.project_id != project_id:
-            raise HTTPException(status_code=404, detail="Document not found")
+) -> dict[str, Any]:
+    project = await _get_project(project_id, db)
+    doc = await db.get(Document, document_id)
+    if not doc or doc.project_id != project_id:
+        raise HTTPException(status_code=404, detail="Document not found")
 
-        _delete_file(doc.file_path)
-        await db.delete(doc)
-        await db.commit()
-        return await _refresh_project_from_documents(project, db)
-
-    return single_item_stream(process)
+    _delete_file(doc.file_path)
+    await db.delete(doc)
+    await db.commit()
+    return await _refresh_project_from_documents(project, db)

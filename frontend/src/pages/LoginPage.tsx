@@ -1,7 +1,6 @@
 import { GoogleLogin } from "@react-oauth/google";
 import { useAuth } from "../auth/AuthContext";
 import { useState } from "react";
-import axios from "axios";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -33,15 +32,11 @@ export default function LoginPage() {
               try {
                 await login(response.credential);
               } catch (error) {
-                if (axios.isAxiosError(error)) {
-                  setError(
-                    error.response?.data?.detail ||
-                      "Sign-in failed. Please try again."
-                  );
-                  return;
-                }
-
-                setError("Sign-in failed. Please try again.");
+                setError(
+                  error instanceof Error && error.message
+                    ? error.message
+                    : "Sign-in failed. Please try again."
+                );
               }
             }}
             onError={() => setError("Google sign-in failed")}

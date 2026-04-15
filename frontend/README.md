@@ -8,7 +8,7 @@ React single-page application for managing projects and generating AI-powered ef
 - **Vite** - Build tool
 - **Tailwind CSS** - Styling
 - **React Router** - Client-side routing
-- **Axios** - API client
+- **Fetch API** - API client
 - **Google Identity Services** - OAuth login
 - **pnpm** - Package management
 
