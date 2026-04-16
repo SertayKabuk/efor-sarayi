@@ -9,7 +9,20 @@ from app.config import settings
 
 client = AsyncOpenAI(api_key=settings.openai_api_key, base_url=settings.azure_endpoint)
 
-MIME_FALLBACK = "application/octet-stream"
+SUPPORTED_FILE_MIME_TYPES = {
+    ".csv": "text/csv",
+    ".doc": "application/msword",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".md": "text/markdown",
+    ".odt": "application/vnd.oasis.opendocument.text",
+    ".pdf": "application/pdf",
+    ".ppt": "application/vnd.ms-powerpoint",
+    ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ".rtf": "application/rtf",
+    ".txt": "text/plain",
+    ".xls": "application/vnd.ms-excel",
+    ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+}
 
 
 class ExtractedPlanPhase(BaseModel):
@@ -42,12 +55,24 @@ class ExtractedProjectInfo(BaseModel):
     notes: str
 
 
+def _guess_supported_mime_type(filename: str) -> str:
+    extension = Path(filename).suffix.lower()
+    if extension in SUPPORTED_FILE_MIME_TYPES:
+        return SUPPORTED_FILE_MIME_TYPES[extension]
+
+    guessed_type = mimetypes.guess_type(filename, strict=False)[0]
+    if guessed_type:
+        return guessed_type
+
+    raise ValueError(f"Could not determine a supported MIME type for '{filename}'")
+
+
 def _build_file_content_block(filename: str, file_path: str) -> dict:
     """Build an input_file content block with base64-encoded file data."""
     path = Path(file_path)
     data = path.read_bytes()
     b64 = base64.b64encode(data).decode("utf-8")
-    mime = mimetypes.guess_type(filename)[0] or MIME_FALLBACK
+    mime = _guess_supported_mime_type(filename)
     return {
         "type": "input_file",
         "filename": filename,
