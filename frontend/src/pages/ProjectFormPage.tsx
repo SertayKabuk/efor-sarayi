@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import Alert from "@/components/ui/Alert";
+import Button from "@/components/ui/Button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
+import Spinner from "@/components/ui/Spinner";
 import {
   createProject,
   getProject,
@@ -97,21 +107,40 @@ export default function ProjectFormPage() {
     if (projectId) loadProject(projectId);
   }, [projectId, loadProject]);
 
-  if (loading) return <p className="text-gray-500">Loading...</p>;
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="flex items-center gap-3 px-6 py-5 text-sm text-secondary">
+          <Spinner size="sm" />
+          Loading project details...
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <div className="max-w-2xl space-y-6">
-      <h1 className="text-2xl font-bold text-gray-800">
-        {id ? "Edit Project" : projectId ? "Project Created" : "Add Project"}
-      </h1>
-      {error && (
-        <div className="bg-red-50 text-red-700 p-3 rounded">{error}</div>
-      )}
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div>
+        <p className="text-sm font-semibold text-brand-secondary">
+          Knowledge base maintenance
+        </p>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-primary">
+          {id ? "Edit Project" : projectId ? "Project Created" : "Add Project"}
+        </h1>
+        <p className="mt-2 text-sm text-secondary">
+          Capture project scope, structure, risks, and context so future
+          estimations have something better than wishful thinking.
+        </p>
+      </div>
+
+      {error && <Alert tone="error">{error}</Alert>}
+
       <ProjectForm
         initialData={initialData}
         onSubmit={handleSubmit}
         saving={saving}
       />
+
       {projectId && (
         <DocumentUpload
           projectId={projectId}
@@ -119,14 +148,12 @@ export default function ProjectFormPage() {
           onProjectUpdated={handleProjectUpdated}
         />
       )}
+
       {projectId && !id && (
         <div className="flex justify-end">
-          <button
-            onClick={() => navigate("/")}
-            className="bg-gray-200 px-4 py-2 rounded text-sm font-medium hover:bg-gray-300"
-          >
+          <Button tone="secondary" onClick={() => navigate("/")}>
             Done
-          </button>
+          </Button>
         </div>
       )}
     </div>

@@ -1,3 +1,7 @@
+import { SearchLg } from "@untitledui/icons";
+import { Card, CardContent } from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 import type { Project } from "../types/project";
 
 interface Props {
@@ -24,37 +28,39 @@ export default function ProjectFilters({
   ).sort();
 
   return (
-    <div className="flex flex-wrap gap-3 mb-4">
-      <input
-        type="text"
-        placeholder="Search by name..."
-        value={search}
-        onChange={(e) => onSearchChange(e.target.value)}
-        className="border rounded px-3 py-1.5 text-sm w-56"
-      />
-      <select
-        value={complexity}
-        onChange={(e) => onComplexityChange(e.target.value)}
-        className="border rounded px-3 py-1.5 text-sm"
-      >
-        <option value="">All complexities</option>
-        <option value="low">Low</option>
-        <option value="medium">Medium</option>
-        <option value="high">High</option>
-        <option value="very_high">Very High</option>
-      </select>
-      <select
-        value={techStack}
-        onChange={(e) => onTechStackChange(e.target.value)}
-        className="border rounded px-3 py-1.5 text-sm"
-      >
-        <option value="">All tech stacks</option>
-        {allTech.map((t) => (
-          <option key={t} value={t}>
-            {t}
-          </option>
-        ))}
-      </select>
-    </div>
+    <Card>
+      <CardContent className="p-4">
+        <div className="grid gap-4 md:grid-cols-[minmax(0,2fr)_1fr_1fr]">
+          <Input
+            type="search"
+            icon={SearchLg}
+            placeholder="Search by project name..."
+            value={search}
+            onChange={(e) => onSearchChange(e.target.value)}
+          />
+          <Select
+            value={complexity}
+            onChange={(e) => onComplexityChange(e.target.value)}
+          >
+            <option value="">All complexities</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="very_high">Very High</option>
+          </Select>
+          <Select
+            value={techStack}
+            onChange={(e) => onTechStackChange(e.target.value)}
+          >
+            <option value="">All tech stacks</option>
+            {allTech.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

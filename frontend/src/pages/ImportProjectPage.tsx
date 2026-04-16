@@ -1,5 +1,17 @@
 import { useCallback, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { File04, UploadCloud01 } from "@untitledui/icons";
+import Alert from "@/components/ui/Alert";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
+import Textarea from "@/components/ui/Textarea";
 import { createProject, uploadDocuments } from "../api/client";
 import type { DocumentInfo } from "../types/project";
 
@@ -60,97 +72,111 @@ export default function ImportProjectPage() {
   };
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">
-        Import Project from Documents
-      </h1>
-      <div className="bg-white p-6 rounded-lg shadow space-y-4">
-        <p className="text-sm text-gray-600">
-          Upload one or more project documents. The system will analyze all
-          documents and automatically extract project information.
-          <br />
-          <span className="text-xs text-gray-400">
-            Supported: PDF, DOCX, DOC, ODT, RTF, TXT, MD, XLSX, XLS, CSV, PPTX, PPT
-          </span>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <div>
+        <p className="text-sm font-semibold text-brand-secondary">
+          Document-powered onboarding
         </p>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-primary">
+          Import project from documents
+        </h1>
+        <p className="mt-2 text-sm text-secondary">
+          Upload one or more documents and let the app pre-fill the project
+          record before you fine-tune the details.
+        </p>
+      </div>
 
-        {error && (
-          <div className="bg-red-50 text-red-700 p-3 rounded text-sm">
-            {error}
-          </div>
-        )}
+      <Card>
+        <CardHeader>
+          <CardTitle>Upload source material</CardTitle>
+          <CardDescription>
+            Supported formats: PDF, DOCX, DOC, ODT, RTF, TXT, MD, XLSX, XLS,
+            CSV, PPTX, PPT.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {error && <Alert tone="error">{error}</Alert>}
 
-        {files.length > 0 && (
-          <ul className="divide-y">
-            {files.map((file, i) => (
-              <li
-                key={`${file.name}-${i}`}
-                className="flex items-center justify-between py-2 text-sm"
+          <div className="rounded-3xl border border-dashed border-primary bg-secondary p-8">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-brand-primary text-brand-primary">
+                <UploadCloud01 className="size-6" />
+              </div>
+              <h2 className="mt-4 text-lg font-semibold text-primary">
+                Add project files
+              </h2>
+              <p className="mt-2 max-w-xl text-sm text-secondary">
+                Specs, proposals, spreadsheets, or decks — toss them in here and
+                the importer will synthesize them into a draft project record.
+              </p>
+              <input
+                ref={fileRef}
+                type="file"
+                accept={ACCEPTED}
+                multiple
+                onChange={addFiles}
+                className="hidden"
+                id="import-upload"
+              />
+              <label
+                htmlFor="import-upload"
+                className="mt-5 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary bg-primary px-4 py-2 text-sm font-semibold text-primary shadow-xs transition hover:bg-secondary"
               >
-                <span className="text-gray-800 truncate">{file.name}</span>
-                <button
-                  onClick={() => removeFile(i)}
-                  className="text-red-600 hover:text-red-800 text-xs font-medium ml-2"
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
+                <File04 className="size-5" />
+                Choose files
+              </label>
+            </div>
+          </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            AI Instructions (optional)
-          </label>
-          <p className="text-xs text-gray-500 mb-2">
-            Guide the AI analysis. For example: &quot;Focus only on the backend
-            modules&quot; or &quot;Ignore the reporting section&quot;.
-          </p>
-          <textarea
+          {files.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-primary">
+                  Selected documents
+                </h3>
+                <p className="text-xs text-tertiary">{files.length} file(s)</p>
+              </div>
+              <ul className="space-y-2">
+                {files.map((file, i) => (
+                  <li
+                    key={`${file.name}-${i}`}
+                    className="flex items-center justify-between rounded-2xl border border-secondary bg-secondary px-4 py-3 text-sm"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Badge tone="neutral" className="uppercase">
+                        {file.name.split(".").pop()}
+                      </Badge>
+                      <span className="truncate text-primary">{file.name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(i)}
+                      className="text-xs font-semibold text-error-primary transition hover:opacity-80"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <Textarea
+            label="AI Instructions (optional)"
+            hint="Guide the analysis, e.g. focus on backend scope or ignore a reporting section."
             value={customPrompt}
             onChange={(e) => setCustomPrompt(e.target.value)}
-            rows={3}
-            className="w-full border rounded px-3 py-2 text-sm"
-            placeholder="e.g. We only focus on the payment and auth modules, ignore the admin dashboard section..."
+            rows={4}
+            placeholder="e.g. Prioritize payment and auth flows, and ignore the admin dashboard section."
           />
-        </div>
 
-        <div className="flex gap-3">
-          <div>
-            <input
-              ref={fileRef}
-              type="file"
-              accept={ACCEPTED}
-              multiple
-              onChange={addFiles}
-              className="hidden"
-              id="import-upload"
-            />
-            <label
-              htmlFor="import-upload"
-              className="inline-flex items-center px-4 py-2 rounded text-sm font-medium cursor-pointer bg-gray-200 hover:bg-gray-300"
-            >
-              Add Files
-            </label>
+          <div className="flex justify-end">
+            <Button onClick={handleImport} disabled={!files.length} loading={importing}>
+              Import Project
+            </Button>
           </div>
-
-          <button
-            onClick={handleImport}
-            disabled={!files.length || importing}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-2 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-          >
-            {importing ? (
-              <>
-                <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
-                Analyzing...
-              </>
-            ) : (
-              "Import Project"
-            )}
-          </button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

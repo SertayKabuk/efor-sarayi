@@ -1,3 +1,7 @@
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
 import { useState } from "react";
 import type { Risk } from "../types/project";
 
@@ -7,9 +11,9 @@ interface Props {
 }
 
 const impactColors: Record<string, string> = {
-  low: "bg-green-100 text-green-800",
-  medium: "bg-yellow-100 text-yellow-800",
-  high: "bg-red-100 text-red-800",
+  low: "success",
+  medium: "warning",
+  high: "danger",
 };
 
 export default function RiskEditor({ risks, onChange }: Props) {
@@ -29,31 +33,26 @@ export default function RiskEditor({ risks, onChange }: Props) {
   };
 
   return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Risks
-      </label>
+    <div className="space-y-3">
+      <p className="text-sm font-medium text-primary">Risks</p>
+
       {risks.length > 0 && (
-        <ul className="space-y-1 mb-2">
+        <ul className="space-y-2">
           {risks.map((risk, i) => (
             <li
               key={i}
-              className="flex items-center justify-between bg-gray-50 px-3 py-1.5 rounded text-sm"
+              className="flex items-center justify-between rounded-2xl border border-secondary bg-secondary px-4 py-3 text-sm"
             >
               <div className="flex items-center gap-2">
-                <span
-                  className={`px-1.5 py-0.5 rounded text-xs font-medium ${
-                    impactColors[risk.impact] || ""
-                  }`}
-                >
+                <Badge tone={(impactColors[risk.impact] as never) || "neutral"}>
                   {risk.impact}
-                </span>
-                <span className="text-gray-700">{risk.description}</span>
+                </Badge>
+                <span className="text-primary">{risk.description}</span>
               </div>
               <button
                 type="button"
                 onClick={() => remove(i)}
-                className="text-red-500 hover:text-red-700 text-xs font-medium ml-2"
+                className="ml-2 text-xs font-semibold text-error-primary transition hover:opacity-80"
               >
                 Remove
               </button>
@@ -61,35 +60,32 @@ export default function RiskEditor({ risks, onChange }: Props) {
           ))}
         </ul>
       )}
-      <div className="flex gap-2">
-        <input
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              add();
-            }
-          }}
-          placeholder="Describe the risk..."
-          className="flex-1 border rounded px-3 py-1.5 text-sm"
-        />
-        <select
-          value={impact}
-          onChange={(e) => setImpact(e.target.value as Risk["impact"])}
-          className="border rounded px-2 py-1.5 text-sm"
-        >
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-        </select>
-        <button
-          type="button"
-          onClick={add}
-          className="bg-gray-200 px-3 py-1.5 rounded text-sm font-medium hover:bg-gray-300"
-        >
-          Add
-        </button>
+
+      <div className="rounded-2xl border border-dashed border-primary bg-secondary p-4">
+        <div className="grid gap-2 md:grid-cols-[minmax(0,2fr)_140px_auto]">
+          <Input
+            value={desc}
+            onChange={(e) => setDesc(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                add();
+              }
+            }}
+            placeholder="Describe the risk..."
+          />
+          <Select
+            value={impact}
+            onChange={(e) => setImpact(e.target.value as Risk["impact"])}
+          >
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </Select>
+          <Button type="button" tone="secondary" onClick={add}>
+            Add Risk
+          </Button>
+        </div>
       </div>
     </div>
   );

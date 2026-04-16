@@ -1,4 +1,19 @@
 import { useRef, useState } from "react";
+import { File04, UploadCloud01 } from "@untitledui/icons";
+import Alert from "@/components/ui/Alert";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
+import Input from "@/components/ui/Input";
+import Select from "@/components/ui/Select";
+import Spinner from "@/components/ui/Spinner";
+import Textarea from "@/components/ui/Textarea";
 import type { EstimationRequest } from "../types/project";
 import { extractFromDocuments } from "../api/client";
 import TagInput from "./TagInput";
@@ -86,185 +101,200 @@ export default function EstimationForm({ onSubmit, loading }: Props) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="space-y-4 bg-white p-6 rounded-lg shadow"
-    >
-      {/* Step 1: Document Upload */}
-      <div className="border-b pb-4">
-        <h2 className="text-lg font-semibold text-gray-800 mb-1">
-          Upload Documents
-        </h2>
-        <p className="text-xs text-gray-500 mb-3">
-          Upload project specs or requirements docs to auto-fill the form below.
-        </p>
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept={ALLOWED_EXTENSIONS.join(",")}
-          onChange={handleFileChange}
-          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-        />
-        {files.length > 0 && (
-          <ul className="mt-2 space-y-1">
-            {files.map((file, i) => (
-              <li
-                key={`${file.name}-${i}`}
-                className="flex items-center justify-between bg-gray-50 px-3 py-1.5 rounded text-sm"
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Upload documents</CardTitle>
+          <CardDescription>
+            Add specs or requirements docs to auto-fill the form below.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="rounded-3xl border border-dashed border-primary bg-secondary p-6">
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="flex size-14 items-center justify-center rounded-2xl bg-brand-primary text-brand-primary">
+                {extracting ? <Spinner className="text-brand-primary" /> : <UploadCloud01 className="size-6" />}
+              </div>
+              <h2 className="mt-4 text-base font-semibold text-primary">
+                Upload source files
+              </h2>
+              <p className="mt-2 max-w-xl text-sm text-secondary">
+                Feed the estimator project documentation and let it pre-populate
+                scope, modules, requirements, and notes.
+              </p>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={ALLOWED_EXTENSIONS.join(",")}
+                onChange={handleFileChange}
+                className="hidden"
+                id="estimate-upload"
+              />
+              <label
+                htmlFor="estimate-upload"
+                className="mt-5 inline-flex cursor-pointer items-center gap-2 rounded-xl border border-primary bg-primary px-4 py-2 text-sm font-semibold text-primary shadow-xs transition hover:bg-secondary"
               >
-                <span className="truncate text-gray-700">{file.name}</span>
-                <button
-                  type="button"
-                  onClick={() => removeFile(i)}
-                  className="text-red-500 hover:text-red-700 ml-2 text-xs font-medium"
-                >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        {files.length > 0 && (
-          <button
-            type="button"
-            onClick={handleExtract}
-            disabled={extracting}
-            className="mt-3 bg-purple-600 text-white px-4 py-2 rounded text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+                <File04 className="size-5" />
+                Choose files
+              </label>
+            </div>
+          </div>
+
+          {files.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-semibold text-primary">
+                  Selected documents
+                </h3>
+                <p className="text-xs text-tertiary">{files.length} file(s)</p>
+              </div>
+              <ul className="space-y-2">
+                {files.map((file, i) => (
+                  <li
+                    key={`${file.name}-${i}`}
+                    className="flex items-center justify-between rounded-2xl border border-secondary bg-secondary px-4 py-3 text-sm"
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Badge tone="neutral" className="uppercase">
+                        {file.name.split(".").pop()}
+                      </Badge>
+                      <span className="truncate text-primary">{file.name}</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(i)}
+                      className="ml-2 text-xs font-semibold text-error-primary transition hover:opacity-80"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {extractError && <Alert tone="error">{extractError}</Alert>}
+
+          {files.length > 0 && (
+            <div className="flex justify-end">
+              <Button type="button" tone="secondary" onClick={handleExtract} loading={extracting}>
+                Extract & Fill Form
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>AI Instructions (optional)</CardTitle>
+          <CardDescription>
+            Guide the AI analysis, e.g. focus on backend modules or ignore a
+            reporting section.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Textarea
+            name="custom_prompt"
+            value={form.custom_prompt}
+            onChange={handleChange}
+            rows={4}
+            placeholder="e.g. Focus on the payment and auth modules, and ignore the admin dashboard section."
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Project details</CardTitle>
+          <CardDescription>
+            Review and adjust the extracted scope before generating the effort estimate.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Input
+            name="name"
+            label="Project Name"
+            value={form.name}
+            onChange={handleChange}
+            required
+            placeholder="Online Marketplace"
+          />
+
+          <Textarea
+            name="description"
+            label="Description"
+            value={form.description}
+            onChange={handleChange}
+            required
+            rows={4}
+            placeholder="Describe what the project will involve..."
+          />
+
+          <TagInput
+            label="Modules"
+            placeholder="e.g. Auth System, Payment Gateway, Admin Dashboard"
+            tags={form.modules}
+            onChange={updateList("modules")}
+          />
+
+          <TagInput
+            label="Integrations"
+            placeholder="e.g. Stripe, SAP, SendGrid"
+            tags={form.integrations}
+            onChange={updateList("integrations")}
+          />
+
+          <TagInput
+            label="Requirements"
+            placeholder="e.g. HIPAA compliance, 99.9% uptime"
+            tags={form.requirements}
+            onChange={updateList("requirements")}
+          />
+
+          <TagInput
+            label="Tech Stack"
+            placeholder="e.g. React, FastAPI, PostgreSQL"
+            tags={form.tech_stack}
+            onChange={updateList("tech_stack")}
+          />
+
+          <Select
+            name="complexity"
+            label="Complexity"
+            value={form.complexity}
+            onChange={handleChange}
           >
-            {extracting ? "Extracting..." : "Extract & Fill Form"}
-          </button>
-        )}
-        {extractError && (
-          <p className="mt-2 text-sm text-red-600">{extractError}</p>
-        )}
-      </div>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="very_high">Very High</option>
+          </Select>
 
-      {/* Custom AI Instructions */}
-      <div className="border-b pb-4">
-        <h2 className="text-lg font-semibold text-gray-800 mb-1">
-          AI Instructions (optional)
-        </h2>
-        <p className="text-xs text-gray-500 mb-3">
-          Guide the AI analysis. For example: &quot;Focus only on the backend
-          modules&quot; or &quot;Ignore the reporting section&quot;.
-        </p>
-        <textarea
-          name="custom_prompt"
-          value={form.custom_prompt}
-          onChange={handleChange}
-          rows={3}
-          className="w-full border rounded px-3 py-2 text-sm"
-          placeholder="e.g. We only focus on the payment and auth modules, ignore the admin dashboard section..."
-        />
-      </div>
+          <TagInput
+            label="Constraints"
+            placeholder="e.g. Legacy DB integration, Go-live before Q4"
+            tags={form.constraints}
+            onChange={updateList("constraints")}
+          />
 
-      {/* Step 2: Review / Edit */}
-      <h2 className="text-lg font-semibold text-gray-800">Project Details</h2>
+          <Textarea
+            name="notes"
+            label="Notes (optional)"
+            value={form.notes}
+            onChange={handleChange}
+            rows={3}
+            placeholder="Any additional context..."
+          />
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Project Name
-        </label>
-        <input
-          name="name"
-          value={form.name}
-          onChange={handleChange}
-          required
-          className="w-full border rounded px-3 py-2 text-sm"
-          placeholder="Online Marketplace"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Description
-        </label>
-        <textarea
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          required
-          rows={3}
-          className="w-full border rounded px-3 py-2 text-sm"
-          placeholder="Describe what the project will involve..."
-        />
-      </div>
-
-      <TagInput
-        label="Modules"
-        placeholder="e.g. Auth System, Payment Gateway, Admin Dashboard"
-        tags={form.modules}
-        onChange={updateList("modules")}
-      />
-
-      <TagInput
-        label="Integrations"
-        placeholder="e.g. Stripe, SAP, SendGrid"
-        tags={form.integrations}
-        onChange={updateList("integrations")}
-      />
-
-      <TagInput
-        label="Requirements"
-        placeholder="e.g. HIPAA compliance, 99.9% uptime"
-        tags={form.requirements}
-        onChange={updateList("requirements")}
-      />
-
-      <TagInput
-        label="Tech Stack"
-        placeholder="e.g. React, FastAPI, PostgreSQL"
-        tags={form.tech_stack}
-        onChange={updateList("tech_stack")}
-      />
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Complexity
-        </label>
-        <select
-          name="complexity"
-          value={form.complexity}
-          onChange={handleChange}
-          className="w-full border rounded px-3 py-2 text-sm"
-        >
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="very_high">Very High</option>
-        </select>
-      </div>
-
-      <TagInput
-        label="Constraints"
-        placeholder="e.g. Legacy DB integration, Go-live before Q4"
-        tags={form.constraints}
-        onChange={updateList("constraints")}
-      />
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
-          Notes (optional)
-        </label>
-        <textarea
-          name="notes"
-          value={form.notes}
-          onChange={handleChange}
-          rows={2}
-          className="w-full border rounded px-3 py-2 text-sm"
-          placeholder="Any additional context..."
-        />
-      </div>
-
-      {/* Step 3: Estimate */}
-      <button
-        type="submit"
-        disabled={loading}
-        className="w-full bg-blue-600 text-white px-6 py-2.5 rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-      >
-        {loading ? "Estimating..." : "Get Effort Estimate"}
-      </button>
+          <div className="flex justify-end border-t border-secondary pt-2">
+            <Button type="submit" loading={loading}>
+              Get Effort Estimate
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </form>
   );
 }

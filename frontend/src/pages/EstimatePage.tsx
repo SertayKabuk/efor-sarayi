@@ -1,4 +1,14 @@
+import { SearchLg } from "@untitledui/icons";
 import { useState } from "react";
+import Alert from "@/components/ui/Alert";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
+import Spinner from "@/components/ui/Spinner";
 import { estimateEffort } from "../api/client";
 import type { EstimationRequest, EstimationResponse } from "../types/project";
 import EstimationForm from "../components/EstimationForm";
@@ -26,27 +36,59 @@ export default function EstimatePage() {
   };
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-gray-800 mb-6">
-        Estimate New Project
-      </h1>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div>
+    <div className="space-y-6">
+      <div>
+        <p className="text-sm font-semibold text-brand-secondary">
+          AI-assisted planning
+        </p>
+        <h1 className="mt-1 text-3xl font-semibold tracking-tight text-primary">
+          Estimate a new project
+        </h1>
+        <p className="mt-2 text-sm text-secondary">
+          Upload source docs, review the extracted scope, and generate a delivery
+          estimate grounded in similar historical work.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] xl:items-start">
+        <div className="min-w-0">
           <EstimationForm onSubmit={handleEstimate} loading={loading} />
         </div>
-        <div>
+
+        <div className="min-w-0 space-y-4">
           {loading && (
-            <div className="bg-white p-8 rounded-lg shadow text-center text-gray-500">
-              <div className="animate-spin w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p>Analyzing similar projects and generating estimate...</p>
-            </div>
+            <Card>
+              <CardContent className="px-6 py-10 text-center">
+                <Spinner size="lg" className="mx-auto text-brand-primary" />
+                <p className="mt-4 text-sm font-medium text-primary">
+                  Analyzing similar projects and generating the estimate...
+                </p>
+                <p className="mt-2 text-sm text-secondary">
+                  This is the part where the app pretends it doesn&apos;t enjoy being
+                  smarter than a spreadsheet.
+                </p>
+              </CardContent>
+            </Card>
           )}
-          {error && (
-            <div className="bg-red-50 text-red-700 p-4 rounded-lg">
-              {error}
-            </div>
-          )}
+
+          {error && <Alert tone="error">{error}</Alert>}
+
           {result && <EstimationResult result={result} />}
+
+          {!loading && !error && !result && (
+            <Card>
+              <CardHeader>
+                <div className="flex size-12 items-center justify-center rounded-2xl bg-brand-primary text-brand-primary">
+                  <SearchLg className="size-5" />
+                </div>
+                <CardTitle className="mt-4">Results will appear here</CardTitle>
+                <CardDescription>
+                  Once you run an estimate, you&apos;ll see duration, effort,
+                  confidence, implementation phases, and similar projects.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )}
         </div>
       </div>
     </div>

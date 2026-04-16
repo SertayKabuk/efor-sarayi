@@ -1,3 +1,7 @@
+import { Plus, XClose } from "@untitledui/icons";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 import { useState } from "react";
 
 interface Props {
@@ -23,12 +27,11 @@ export default function TagInput({ label, placeholder, tags, onChange }: Props) 
   };
 
   return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-      <div className="flex gap-2 mb-2">
-        <input
+    <div className="space-y-3">
+      <p className="text-sm font-medium text-primary">{label}</p>
+
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
@@ -37,33 +40,28 @@ export default function TagInput({ label, placeholder, tags, onChange }: Props) 
               add();
             }
           }}
-          className="flex-1 border rounded px-3 py-2 text-sm"
+          className="sm:flex-1"
+          wrapperClassName="sm:flex-1"
           placeholder={placeholder}
         />
-        <button
-          type="button"
-          onClick={add}
-          className="bg-gray-200 px-3 py-2 rounded text-sm hover:bg-gray-300"
-        >
+        <Button type="button" tone="secondary" iconLeading={Plus} onClick={add}>
           Add
-        </button>
+        </Button>
       </div>
+
       {tags.length > 0 && (
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap gap-2">
           {tags.map((tag) => (
-            <span
-              key={tag}
-              className="bg-blue-50 text-blue-700 px-2 py-1 rounded text-xs flex items-center gap-1"
-            >
-              {tag}
+            <Badge key={tag} tone="blue" className="gap-1.5 pr-1">
+              <span>{tag}</span>
               <button
                 type="button"
                 onClick={() => remove(tag)}
-                className="text-blue-400 hover:text-blue-600"
+                className="inline-flex size-5 items-center justify-center rounded-full text-blue-500 transition hover:bg-blue-100 hover:text-blue-700 dark:hover:bg-blue-900"
               >
-                x
+                <XClose className="size-3.5" />
               </button>
-            </span>
+            </Badge>
           ))}
         </div>
       )}

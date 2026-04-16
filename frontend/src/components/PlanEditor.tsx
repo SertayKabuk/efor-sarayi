@@ -1,3 +1,7 @@
+import { Plus } from "@untitledui/icons";
+import Badge from "@/components/ui/Badge";
+import Button from "@/components/ui/Button";
+import Input from "@/components/ui/Input";
 import { useState } from "react";
 import type { PlanPhase } from "../types/project";
 
@@ -38,10 +42,11 @@ export default function PlanEditor({ phases, onChange }: Props) {
   };
 
   return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        Implementation Plan
-      </label>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium text-primary">Implementation Plan</p>
+        <p className="text-xs text-tertiary">{phases.length} phase(s)</p>
+      </div>
       <div className="space-y-3">
         {phases.map((phase, pi) => (
           <PhaseCard
@@ -54,26 +59,24 @@ export default function PlanEditor({ phases, onChange }: Props) {
           />
         ))}
       </div>
-      <div className="flex gap-2 mt-2">
-        <input
-          value={newPhase}
-          onChange={(e) => setNewPhase(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addPhase();
-            }
-          }}
-          placeholder="Add phase name..."
-          className="flex-1 border rounded px-3 py-1.5 text-sm"
-        />
-        <button
-          type="button"
-          onClick={addPhase}
-          className="bg-gray-200 px-3 py-1.5 rounded text-sm font-medium hover:bg-gray-300"
-        >
-          Add Phase
-        </button>
+      <div className="rounded-2xl border border-dashed border-primary bg-secondary p-4">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Input
+            value={newPhase}
+            onChange={(e) => setNewPhase(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addPhase();
+              }
+            }}
+            placeholder="Add phase name..."
+            wrapperClassName="sm:flex-1"
+          />
+          <Button type="button" tone="secondary" iconLeading={Plus} onClick={addPhase}>
+            Add Phase
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -102,11 +105,14 @@ function PhaseCard({
   };
 
   return (
-    <div className="border rounded p-3 bg-gray-50">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-medium text-gray-800">{phase.phase}</span>
+    <div className="rounded-2xl border border-secondary bg-secondary p-4">
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-sm font-semibold text-primary">{phase.phase}</p>
+          <p className="text-xs text-tertiary">Tasks and effort estimate</p>
+        </div>
         <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500">Days:</label>
+          <Badge tone="purple">{phase.effort_days} day(s)</Badge>
           <input
             type="number"
             min={0}
@@ -114,38 +120,38 @@ function PhaseCard({
             onChange={(e) =>
               onUpdate({ ...phase, effort_days: Number(e.target.value) })
             }
-            className="w-16 border rounded px-2 py-1 text-xs"
+            className="w-20 rounded-lg border border-primary bg-primary px-2.5 py-2 text-xs text-primary outline-hidden focus:border-brand focus:outline-2 focus:-outline-offset-2 focus:outline-brand"
           />
           <button
             type="button"
             onClick={onRemove}
-            className="text-red-500 hover:text-red-700 text-xs font-medium"
+            className="text-xs font-semibold text-error-primary transition hover:opacity-80"
           >
             Remove
           </button>
         </div>
       </div>
       {phase.tasks.length > 0 && (
-        <ul className="space-y-1 mb-2">
+        <ul className="mb-3 space-y-2">
           {phase.tasks.map((task, ti) => (
             <li
               key={ti}
-              className="flex items-center justify-between text-xs bg-white px-2 py-1 rounded"
+              className="flex items-center justify-between rounded-xl border border-secondary bg-primary px-3 py-2 text-sm"
             >
-              <span className="text-gray-700">{task}</span>
+              <span className="text-primary">{task}</span>
               <button
                 type="button"
                 onClick={() => onRemoveTask(ti)}
-                className="text-red-400 hover:text-red-600 ml-2"
+                className="ml-2 text-xs font-semibold text-error-primary transition hover:opacity-80"
               >
-                x
+                Remove
               </button>
             </li>
           ))}
         </ul>
       )}
-      <div className="flex gap-1">
-        <input
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <Input
           value={newTask}
           onChange={(e) => setNewTask(e.target.value)}
           onKeyDown={(e) => {
@@ -155,15 +161,11 @@ function PhaseCard({
             }
           }}
           placeholder="Add task..."
-          className="flex-1 border rounded px-2 py-1 text-xs"
+          wrapperClassName="sm:flex-1"
         />
-        <button
-          type="button"
-          onClick={handleAddTask}
-          className="text-xs text-blue-600 hover:text-blue-800 font-medium px-2"
-        >
-          Add
-        </button>
+        <Button type="button" tone="tertiary" onClick={handleAddTask}>
+          Add task
+        </Button>
       </div>
     </div>
   );

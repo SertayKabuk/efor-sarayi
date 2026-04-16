@@ -1,31 +1,42 @@
 import { useEffect, useState } from "react";
+import { Download04, File04 } from "@untitledui/icons";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import Alert from "@/components/ui/Alert";
+import Badge, { type BadgeTone } from "@/components/ui/Badge";
+import Button, { buttonStyles } from "@/components/ui/Button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/Card";
 import { deleteProject, exportProject, getDocuments, getProject } from "../api/client";
 import { getDocumentDownloadUrl } from "../api/client";
 import type { DocumentInfo, Project } from "../types/project";
 import ExportModal from "../components/ExportModal";
 
-const complexityColors: Record<string, string> = {
-  low: "bg-green-100 text-green-800",
-  medium: "bg-yellow-100 text-yellow-800",
-  high: "bg-orange-100 text-orange-800",
-  very_high: "bg-red-100 text-red-800",
+const complexityColors: Record<string, BadgeTone> = {
+  low: "success",
+  medium: "warning",
+  high: "orange",
+  very_high: "danger",
 };
 
-const impactColors: Record<string, string> = {
-  low: "bg-green-100 text-green-800",
-  medium: "bg-yellow-100 text-yellow-800",
-  high: "bg-red-100 text-red-800",
+const impactColors: Record<string, BadgeTone> = {
+  low: "success",
+  medium: "warning",
+  high: "danger",
 };
 
-function TagList({ items, color }: { items: string[]; color: string }) {
-  if (!items.length) return <span className="text-sm text-gray-400">--</span>;
+function TagList({ items, tone }: { items: string[]; tone: BadgeTone }) {
+  if (!items.length) return <span className="text-sm text-tertiary">—</span>;
   return (
-    <div className="flex flex-wrap gap-1">
+    <div className="flex flex-wrap gap-2">
       {items.map((item) => (
-        <span key={item} className={`${color} px-2 py-0.5 rounded text-xs`}>
+        <Badge key={item} tone={tone}>
           {item}
-        </span>
+        </Badge>
       ))}
     </div>
   );
@@ -53,116 +64,114 @@ export default function ProjectViewPage() {
 
   const handleDelete = async () => {
     if (!id || !confirm("Delete this project?")) return;
-    await deleteProject(id);
-    navigate("/");
+    try {
+      await deleteProject(id);
+      navigate("/");
+    } catch {
+      setError("Failed to delete project");
+    }
   };
 
-  if (loading)
-    return <p className="text-gray-500">Loading...</p>;
-  if (error || !project)
-    return <div className="bg-red-50 text-red-700 p-4 rounded">{error || "Project not found"}</div>;
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="px-6 py-5 text-sm text-secondary">
+          Loading project details...
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error || !project) {
+    return <Alert tone="error">{error || "Project not found"}</Alert>;
+  }
 
   return (
-    <div className="max-w-3xl space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">{project.name}</h1>
-          <div className="flex items-center gap-3 mt-2">
-            <span
-              className={`px-2 py-0.5 rounded text-xs font-medium ${
-                complexityColors[project.complexity] || ""
-              }`}
-            >
-              {project.complexity}
-            </span>
-            <span className="text-sm text-gray-500">
-              {project.duration_days} days
-            </span>
-            {project.effort_person_days > 0 && (
-              <span className="text-sm text-gray-500">
-                {project.effort_person_days} person-days
-              </span>
-            )}
+    <div className="mx-auto max-w-5xl space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-brand-secondary">
+                Project record
+              </p>
+              <CardTitle className="mt-1 text-3xl">{project.name}</CardTitle>
+              <CardDescription className="mt-2 max-w-3xl whitespace-pre-line">
+                {project.description}
+              </CardDescription>
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <Badge tone={complexityColors[project.complexity] || "neutral"}>
+                  {project.complexity}
+                </Badge>
+                <Badge tone="neutral">{project.duration_days} days</Badge>
+                {project.effort_person_days > 0 && (
+                  <Badge tone="purple">{project.effort_person_days} person-days</Badge>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <Button tone="success" size="sm" iconLeading={Download04} onClick={() => setShowExport(true)}>
+                Export
+              </Button>
+              <Link
+                to={`/projects/${project.id}/edit`}
+                className={buttonStyles({ tone: "secondary", size: "sm" })}
+              >
+                Edit
+              </Link>
+              <Button tone="destructive" size="sm" onClick={handleDelete}>
+                Delete
+              </Button>
+            </div>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowExport(true)}
-            className="bg-green-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-green-700"
-          >
-            Export
-          </button>
-          <Link
-            to={`/projects/${project.id}/edit`}
-            className="bg-blue-600 text-white px-4 py-1.5 rounded text-sm font-medium hover:bg-blue-700"
-          >
-            Edit
-          </Link>
-          <button
-            onClick={handleDelete}
-            className="bg-red-50 text-red-600 px-4 py-1.5 rounded text-sm font-medium hover:bg-red-100"
-          >
-            Delete
-          </button>
-        </div>
-      </div>
+        </CardHeader>
+        <CardContent className="grid gap-5 md:grid-cols-2">
+          <div>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Modules</h2>
+            <TagList items={project.modules} tone="purple" />
+          </div>
+          <div>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Integrations</h2>
+            <TagList items={project.integrations} tone="orange" />
+          </div>
+          <div>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Requirements</h2>
+            <TagList items={project.requirements} tone="teal" />
+          </div>
+          <div>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Tech Stack</h2>
+            <TagList items={project.tech_stack} tone="blue" />
+          </div>
+          <div>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Constraints</h2>
+            <TagList items={project.constraints} tone="danger" />
+          </div>
+          <div>
+            <h2 className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-tertiary">Team Composition</h2>
+            <TagList items={project.team_composition} tone="indigo" />
+          </div>
+        </CardContent>
+      </Card>
 
-      <div className="bg-white rounded-lg shadow p-6 space-y-5">
-        <div>
-          <h2 className="text-xs font-medium text-gray-500 uppercase mb-1">Description</h2>
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
-            {project.description}
-          </p>
-        </div>
-
-        <div>
-          <h2 className="text-xs font-medium text-gray-500 uppercase mb-1">Modules</h2>
-          <TagList items={project.modules} color="bg-purple-50 text-purple-700" />
-        </div>
-
-        <div>
-          <h2 className="text-xs font-medium text-gray-500 uppercase mb-1">Integrations</h2>
-          <TagList items={project.integrations} color="bg-amber-50 text-amber-700" />
-        </div>
-
-        <div>
-          <h2 className="text-xs font-medium text-gray-500 uppercase mb-1">Requirements</h2>
-          <TagList items={project.requirements} color="bg-teal-50 text-teal-700" />
-        </div>
-
-        <div>
-          <h2 className="text-xs font-medium text-gray-500 uppercase mb-1">Tech Stack</h2>
-          <TagList items={project.tech_stack} color="bg-blue-50 text-blue-700" />
-        </div>
-
-        <div>
-          <h2 className="text-xs font-medium text-gray-500 uppercase mb-1">Constraints</h2>
-          <TagList items={project.constraints} color="bg-red-50 text-red-700" />
-        </div>
-
-        <div>
-          <h2 className="text-xs font-medium text-gray-500 uppercase mb-1">Team Composition</h2>
-          <TagList items={project.team_composition} color="bg-indigo-50 text-indigo-700" />
-        </div>
-      </div>
-
-      {/* Implementation Plan */}
       {project.implementation_plan.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">Implementation Plan</h2>
-          <div className="space-y-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Implementation plan</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
             {project.implementation_plan.map((phase, i) => (
-              <div key={i} className="border rounded p-3">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-medium text-gray-800">
+              <div key={i} className="rounded-2xl border border-secondary bg-secondary p-4">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <span className="text-sm font-semibold text-primary">
                     {phase.phase}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <Badge tone="purple">
                     {phase.effort_days} person-days
-                  </span>
+                  </Badge>
                 </div>
                 {phase.tasks.length > 0 && (
-                  <ul className="list-disc list-inside text-xs text-gray-600 space-y-0.5 mt-1">
+                  <ul className="list-disc space-y-1 pl-5 text-sm text-secondary">
                     {phase.tasks.map((task, ti) => (
                       <li key={ti}>{task}</li>
                     ))}
@@ -170,90 +179,110 @@ export default function ProjectViewPage() {
                 )}
               </div>
             ))}
-            <div className="text-right text-sm font-medium text-gray-700 pt-1 border-t">
+            <div className="border-t border-secondary pt-2 text-right text-sm font-semibold text-primary">
               Total: {project.implementation_plan.reduce((sum, p) => sum + p.effort_days, 0)} person-days
             </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Assumptions */}
       {project.assumptions.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">Assumptions</h2>
-          <ul className="list-disc list-inside text-sm text-gray-700 space-y-1">
+        <Card>
+          <CardHeader>
+            <CardTitle>Assumptions</CardTitle>
+          </CardHeader>
+          <CardContent>
+          <ul className="list-disc space-y-1 pl-5 text-sm text-secondary">
             {project.assumptions.map((a, i) => (
               <li key={i}>{a}</li>
             ))}
           </ul>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Risks */}
       {project.risks.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">Risks</h2>
-          <div className="space-y-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Risks</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
             {project.risks.map((risk, i) => (
               <div key={i} className="flex items-start gap-2 text-sm">
-                <span
-                  className={`px-1.5 py-0.5 rounded text-xs font-medium shrink-0 mt-0.5 ${
-                    impactColors[risk.impact] || ""
-                  }`}
+                <Badge
+                  tone={impactColors[risk.impact] || "neutral"}
+                  className="mt-0.5 shrink-0"
                 >
                   {risk.impact}
-                </span>
-                <span className="text-gray-700">{risk.description}</span>
+                </Badge>
+                <span className="text-secondary">{risk.description}</span>
               </div>
             ))}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
-      {/* Questions & Ambiguities */}
       {project.questions.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">Questions & Ambiguities</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>Questions & Ambiguities</CardTitle>
+          </CardHeader>
+          <CardContent>
           <ul className="space-y-2">
             {project.questions.map((q, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                <span className="text-blue-500 shrink-0 mt-0.5">?</span>
+              <li key={i} className="flex items-start gap-2 text-sm text-secondary">
+                <span className="mt-0.5 shrink-0 text-brand-primary">?</span>
                 {q}
               </li>
             ))}
           </ul>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {project.notes && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xs font-medium text-gray-500 uppercase mb-1">Notes</h2>
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+        <Card>
+          <CardHeader>
+            <CardTitle>Notes</CardTitle>
+          </CardHeader>
+          <CardContent>
+          <p className="whitespace-pre-line text-sm leading-6 text-secondary">
             {project.notes}
           </p>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {documents.length > 0 && (
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-800 mb-3">Documents</h2>
-          <ul className="divide-y">
+        <Card>
+          <CardHeader>
+            <CardTitle>Documents</CardTitle>
+          </CardHeader>
+          <CardContent>
+          <ul className="space-y-2">
             {documents.map((doc) => (
-              <li key={doc.id} className="flex items-center gap-2 py-2 text-sm">
-                <span className="text-gray-400 shrink-0 uppercase text-xs">
-                  {doc.filename.split(".").pop()}
-                </span>
+              <li
+                key={doc.id}
+                className="flex items-center gap-3 rounded-2xl border border-secondary bg-secondary px-4 py-3 text-sm"
+              >
+                <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-brand-primary">
+                  <File04 className="size-4.5" />
+                </div>
                 <a
                   href={getDocumentDownloadUrl(project.id, doc.id)}
-                  className="text-blue-600 hover:text-blue-800 truncate"
+                  className="truncate font-medium text-brand-primary transition hover:text-brand-secondary"
                   download
                 >
                   {doc.filename}
                 </a>
+                <Badge tone="neutral" className="ml-auto uppercase">
+                  {doc.filename.split(".").pop()}
+                </Badge>
               </li>
             ))}
           </ul>
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {showExport && (
