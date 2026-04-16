@@ -12,7 +12,7 @@ from app.config import settings
 from app.database import get_db
 from app.models.project import Document, Project
 from app.schemas.project import DocumentRead, ProjectRead
-from app.services.document_analyzer import extract_project_info
+from app.services.document_analyzer import DocumentAnalysisError, extract_project_info
 from app.services.embedding import build_embedding_text, generate_embedding
 from app.services.vector_store import vector_store
 
@@ -165,7 +165,10 @@ async def upload_documents(
         db.add(doc)
 
     await db.commit()
-    return await _refresh_project_from_documents(project, db, custom_prompt=custom_prompt)
+    try:
+        return await _refresh_project_from_documents(project, db, custom_prompt=custom_prompt)
+    except DocumentAnalysisError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/{document_id}/download")
@@ -200,4 +203,7 @@ async def delete_document(
     _delete_file(doc.file_path)
     await db.delete(doc)
     await db.commit()
-    return await _refresh_project_from_documents(project, db)
+    try:
+        return await _refresh_project_from_documents(project, db)
+    except DocumentAnalysisError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

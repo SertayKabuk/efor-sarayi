@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.models.project import Project
 from app.schemas.project import EstimationRequest, EstimationResponse
-from app.services.document_analyzer import extract_project_info
+from app.services.document_analyzer import DocumentAnalysisError, extract_project_info
 from app.services.embedding import generate_embedding
 from app.services.estimator import estimate_effort
 from app.services.vector_store import vector_store
@@ -52,7 +52,10 @@ async def extract_from_documents(
 
             doc_list.append({"filename": filename, "file_path": str(tmp_path)})
 
-        extracted = await extract_project_info(doc_list, custom_prompt=custom_prompt)
+        try:
+            extracted = await extract_project_info(doc_list, custom_prompt=custom_prompt)
+        except DocumentAnalysisError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
         return EstimationRequest.model_validate(extracted.model_dump())
     finally:
         for tmp in temp_files:

@@ -120,4 +120,4 @@ alembic downgrade -1
 
 PDF, DOCX, DOC, ODT, RTF, TXT, MD, XLSX, XLS, CSV, PPTX, PPT (max 50 MB per file).
 
-Files are sent directly to the LLM as base64-encoded content blocks (no server-side parsing).
+When running against Azure Responses, PDF files are sent directly to the model and non-PDF formats are text-extracted server-side before analysis. Legacy binary Office formats (`.doc`, `.xls`, `.ppt`) may need conversion to PDF or modern Office formats first.
