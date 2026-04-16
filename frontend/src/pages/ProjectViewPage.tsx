@@ -287,7 +287,8 @@ export default function ProjectViewPage() {
 
       {showExport && (
         <ExportModal
-          onExport={(customPrompt) => exportProject(project, customPrompt || undefined)}
+          onExport={(mode, customPrompt) => exportProject(project, mode, customPrompt)}
+          definitionsOptionLabel="Export from project definitions"
           onClose={() => setShowExport(false)}
         />
       )}

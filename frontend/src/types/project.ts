@@ -1,3 +1,5 @@
+export type ExportMode = "ai" | "definitions";
+
 export interface PlanPhase {
   phase: string;
   tasks: string[];

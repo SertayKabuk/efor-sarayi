@@ -229,7 +229,8 @@ export default function EstimationResult({ result }: Props) {
 
       {showExport && (
         <ExportModal
-          onExport={(customPrompt) => exportEstimate(result, customPrompt || undefined)}
+          onExport={(mode, customPrompt) => exportEstimate(result, mode, customPrompt)}
+          definitionsOptionLabel="Export from estimate data"
           onClose={() => setShowExport(false)}
         />
       )}

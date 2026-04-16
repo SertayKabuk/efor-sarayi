@@ -4,6 +4,7 @@ import type {
   DocumentInfo,
   EstimationRequest,
   EstimationResponse,
+  ExportMode,
 } from "../types/project";
 import { API_BASE_URL, requestJson, requestVoid } from "./http";
 
@@ -91,13 +92,19 @@ export async function estimateEffort(
 
 export async function exportProject(
   project: Project,
+  mode: ExportMode,
   customPrompt?: string
 ): Promise<string> {
+  const trimmedPrompt = customPrompt?.trim();
   const response = await fetch(`${API_BASE_URL}/export/project`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json", Accept: "text/plain" },
-    body: JSON.stringify({ project, custom_prompt: customPrompt || null }),
+    body: JSON.stringify({
+      project,
+      mode,
+      custom_prompt: mode === "ai" ? trimmedPrompt || null : null,
+    }),
   });
   if (!response.ok) throw new Error("Export failed");
   return response.text();
@@ -105,13 +112,19 @@ export async function exportProject(
 
 export async function exportEstimate(
   estimate: EstimationResponse,
+  mode: ExportMode,
   customPrompt?: string
 ): Promise<string> {
+  const trimmedPrompt = customPrompt?.trim();
   const response = await fetch(`${API_BASE_URL}/export/estimate`, {
     method: "POST",
     credentials: "include",
     headers: { "Content-Type": "application/json", Accept: "text/plain" },
-    body: JSON.stringify({ estimate, custom_prompt: customPrompt || null }),
+    body: JSON.stringify({
+      estimate,
+      mode,
+      custom_prompt: mode === "ai" ? trimmedPrompt || null : null,
+    }),
   });
   if (!response.ok) throw new Error("Export failed");
   return response.text();
