@@ -3,8 +3,5 @@ set -eu
 
 cd /app
 
-echo "Running database migrations..."
-alembic upgrade head
-
-echo "Starting Nginx + FastAPI..."
+echo "Starting Nginx immediately; backend will run migrations before Uvicorn boots..."
 exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf

@@ -50,13 +50,20 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.efor-sarayi-api.rule=Host(`iscozumleritest.d-teknoloji.com.tr`) && PathPrefix(`/efor-sarayi-api`)"
       - "traefik.http.routers.efor-sarayi-api.entrypoints=web"
-      - "traefik.http.routers.efor-sarayi-api.service=efor-sarayi-app"
+      - "traefik.http.routers.efor-sarayi-api.service=efor-sarayi-api"
       - "traefik.http.routers.efor-sarayi-api.priority=200"
       - "traefik.http.routers.efor-sarayi-frontend.rule=Host(`iscozumleritest.d-teknoloji.com.tr`) && PathPrefix(`/efor-sarayi`)"
       - "traefik.http.routers.efor-sarayi-frontend.entrypoints=web"
-      - "traefik.http.routers.efor-sarayi-frontend.service=efor-sarayi-app"
+      - "traefik.http.routers.efor-sarayi-frontend.service=efor-sarayi-frontend"
       - "traefik.http.routers.efor-sarayi-frontend.priority=100"
-      - "traefik.http.services.efor-sarayi-app.loadbalancer.server.port=80"
+      - "traefik.http.services.efor-sarayi-api.loadbalancer.server.port=80"
+      - "traefik.http.services.efor-sarayi-api.loadbalancer.healthcheck.path=/efor-sarayi-api/health"
+      - "traefik.http.services.efor-sarayi-api.loadbalancer.healthcheck.interval=10s"
+      - "traefik.http.services.efor-sarayi-api.loadbalancer.healthcheck.timeout=3s"
+      - "traefik.http.services.efor-sarayi-frontend.loadbalancer.server.port=80"
+      - "traefik.http.services.efor-sarayi-frontend.loadbalancer.healthcheck.path=/efor-sarayi/"
+      - "traefik.http.services.efor-sarayi-frontend.loadbalancer.healthcheck.interval=10s"
+      - "traefik.http.services.efor-sarayi-frontend.loadbalancer.healthcheck.timeout=3s"
     networks:
       - traefik-network
       - db_network
