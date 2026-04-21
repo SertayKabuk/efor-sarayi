@@ -14,17 +14,17 @@ services:
     networks:
       - traefik-network
 
-  backend:
-    image: ghcr.io/sertaykabuk/efor-sarayi/backend:main
-    container_name: efor-sarayi-backend
+  app:
+    image: ghcr.io/sertaykabuk/efor-sarayi/app:main
+    container_name: efor-sarayi-app
     restart: unless-stopped
     expose:
-      - "8080"
+      - "80"
     environment:
       DATABASE_URL: ${DATABASE_URL}
       ROOT_PATH: ${ROOT_PATH:-/efor-sarayi-api}
-      CHROMA_HOST: ${CHROMA_HOST:-chromadb}
-      CHROMA_PORT: ${CHROMA_PORT:-8000}
+      CHROMA_HOST: chromadb
+      CHROMA_PORT: 8000
       UPLOAD_DIR: /app/uploads
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       JWT_SECRET: ${JWT_SECRET}
@@ -43,37 +43,23 @@ services:
       chromadb:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      test: ["CMD", "curl", "-f", "http://localhost/efor-sarayi-api/health"]
       interval: 10s
       retries: 3
     labels:
       - "traefik.enable=true"
-      # Main router for /efor-sarayi-api path
-      - "traefik.http.routers.efor-sarayi-backend.rule=Host(`iscozumleritest.d-teknoloji.com.tr`) && PathPrefix(`/efor-sarayi-api`)"
-      - "traefik.http.routers.efor-sarayi-backend.entrypoints=web"
-      # Service port
-      - "traefik.http.services.efor-sarayi-backend.loadbalancer.server.port=8080"
+      - "traefik.http.routers.efor-sarayi-api.rule=Host(`iscozumleritest.d-teknoloji.com.tr`) && PathPrefix(`/efor-sarayi-api`)"
+      - "traefik.http.routers.efor-sarayi-api.entrypoints=web"
+      - "traefik.http.routers.efor-sarayi-api.service=efor-sarayi-app"
+      - "traefik.http.routers.efor-sarayi-api.priority=200"
+      - "traefik.http.routers.efor-sarayi-frontend.rule=Host(`iscozumleritest.d-teknoloji.com.tr`) && PathPrefix(`/efor-sarayi`)"
+      - "traefik.http.routers.efor-sarayi-frontend.entrypoints=web"
+      - "traefik.http.routers.efor-sarayi-frontend.service=efor-sarayi-app"
+      - "traefik.http.routers.efor-sarayi-frontend.priority=100"
+      - "traefik.http.services.efor-sarayi-app.loadbalancer.server.port=80"
     networks:
       - traefik-network
       - db_network
-  frontend:
-    restart: unless-stopped
-    image: ghcr.io/sertaykabuk/efor-sarayi/frontend:main
-    container_name: efor-sarayi-frontend
-    expose:
-      - "80"
-    depends_on:
-      backend:
-        condition: service_healthy
-    networks:
-      - traefik-network
-    labels:
-      - "traefik.enable=true"
-      # Main router for /efor-sarayi path
-      - "traefik.http.routers.efor-sarayi-frontend.rule=Host(`iscozumleritest.d-teknoloji.com.tr`) && PathPrefix(`/efor-sarayi`)"
-      - "traefik.http.routers.efor-sarayi-frontend.entrypoints=web"
-      # Service port
-      - "traefik.http.services.efor-sarayi-frontend.loadbalancer.server.port=80"
 
 networks:
   traefik-network:

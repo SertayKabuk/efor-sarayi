@@ -53,10 +53,11 @@ pnpm build
 
 ## Production
 
-The production build is served by Nginx (see `nginx.conf`). The Nginx config:
+The production build is bundled into the repo-root unified app container.
+Nginx configuration now lives in `../docker/nginx.conf`, where it:
 
-- Serves the React SPA from `/`
-- Proxies `/api/` requests to the backend
+- Serves the React SPA from `/efor-sarayi/`
+- Proxies `/efor-sarayi-api` requests to FastAPI inside the same container
 - Sets `client_max_body_size 50M` for file uploads
 - Uses `try_files` for client-side routing
 

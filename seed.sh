@@ -16,7 +16,7 @@ load_env_file ./backend/.env
 load_env_file ./.env
 set +a
 
-API="http://localhost:8080/api/v1/projects"
+API="http://localhost:3000/efor-sarayi-api/api/v1/projects"
 SEED_AUTH_TOKEN="${SEED_AUTH_TOKEN:-}"
 # Normalize accidental CR from mixed line endings
 SEED_AUTH_TOKEN="${SEED_AUTH_TOKEN//$'\r'/}"

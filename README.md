@@ -21,6 +21,9 @@ backend/      FastAPI + SQLAlchemy (async) + PostgreSQL
               ChromaDB (vector store)
 ```
 
+Deployment packages the frontend and backend into a single app container.
+Nginx serves the SPA at `/efor-sarayi/` and proxies `/efor-sarayi-api` to FastAPI.
+
 ## Quick Start
 
 ### Prerequisites
@@ -44,7 +47,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-3. Open http://localhost:3000
+3. Open http://localhost:3000 (it redirects to `/efor-sarayi/`)
 
 ### Seed Data (optional)
 
@@ -73,8 +76,7 @@ bash seed.sh
 
 | Service | Port | Description |
 |---|---|---|
-| Frontend | 3000 | Nginx serving React SPA, proxies `/api/` to backend |
-| Backend | 8080 | FastAPI application |
+| App | 3000 | Single container: Nginx serves the React SPA and proxies `/efor-sarayi-api` to FastAPI |
 | PostgreSQL | 5432 | Primary database |
 | ChromaDB | 8000 | Vector similarity search |
 
@@ -96,6 +98,8 @@ efor-sarayi/
       components/   Reusable UI components
       pages/        Route pages
       types/        TypeScript interfaces
+  docker/           Nginx, supervisor and startup config
+  Dockerfile        Unified frontend + backend container build
   docker-compose.yml
   seed.sh           Sample data seeder
 ```
