@@ -48,6 +48,7 @@ services:
       retries: 3
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network=traefik-network"
       - "traefik.http.routers.efor-sarayi-api.rule=Host(`iscozumleritest.d-teknoloji.com.tr`) && PathPrefix(`/efor-sarayi-api`)"
       - "traefik.http.routers.efor-sarayi-api.entrypoints=web"
       - "traefik.http.routers.efor-sarayi-api.service=efor-sarayi-api"
