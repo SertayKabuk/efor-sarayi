@@ -11,6 +11,7 @@ import {
 import type { EstimationResponse } from "../types/project";
 import { exportEstimate } from "../api/client";
 import ExportModal from "./ExportModal";
+import ImplementationPlanGantt from "./ImplementationPlanGantt";
 
 interface Props {
   result: EstimationResponse;
@@ -99,7 +100,8 @@ export default function EstimationResult({ result }: Props) {
           <CardHeader>
             <CardTitle>Implementation plan</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
+            <ImplementationPlanGantt phases={result.implementation_plan} />
             {result.implementation_plan.map((phase, i) => (
               <div key={i} className="rounded-2xl border border-secondary bg-secondary p-4">
                 <div className="mb-2 flex items-center justify-between gap-3">

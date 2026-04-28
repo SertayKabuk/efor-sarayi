@@ -4,6 +4,7 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { useState } from "react";
 import type { PlanPhase } from "../types/project";
+import ImplementationPlanGantt from "./ImplementationPlanGantt";
 
 interface Props {
   phases: PlanPhase[];
@@ -47,6 +48,7 @@ export default function PlanEditor({ phases, onChange }: Props) {
         <p className="text-sm font-medium text-primary">Implementation Plan</p>
         <p className="text-xs text-tertiary">{phases.length} phase(s)</p>
       </div>
+      {phases.length > 0 && <ImplementationPlanGantt phases={phases} emptyState="hint" />}
       <div className="space-y-3">
         {phases.map((phase, pi) => (
           <PhaseCard

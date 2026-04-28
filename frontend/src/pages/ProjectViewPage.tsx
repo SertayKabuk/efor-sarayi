@@ -15,6 +15,7 @@ import { deleteProject, exportProject, getDocuments, getProject } from "../api/c
 import { getDocumentDownloadUrl } from "../api/client";
 import type { DocumentInfo, Project } from "../types/project";
 import ExportModal from "../components/ExportModal";
+import ImplementationPlanGantt from "../components/ImplementationPlanGantt";
 import ProjectAiChat from "../components/ProjectAiChat";
 
 const complexityColors: Record<string, BadgeTone> = {
@@ -162,7 +163,8 @@ export default function ProjectViewPage() {
           <CardHeader>
             <CardTitle>Implementation plan</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-4">
+            <ImplementationPlanGantt phases={project.implementation_plan} />
             {project.implementation_plan.map((phase, i) => (
               <div key={i} className="rounded-2xl border border-secondary bg-secondary p-4">
                 <div className="mb-2 flex items-center justify-between gap-3">
