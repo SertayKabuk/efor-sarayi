@@ -26,10 +26,7 @@ export default function ProjectForm({ initialData, onSubmit, saving }: Props) {
     const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]:
-        name === "duration_days" || name === "effort_person_days"
-          ? Number(value)
-          : value,
+      [name]: name === "duration_days" ? Number(value) : value,
     }));
   };
 
@@ -103,20 +100,12 @@ export default function ProjectForm({ initialData, onSubmit, saving }: Props) {
               onChange={handleChange}
               required
             />
-            <Input
-              name="effort_person_days"
-              type="number"
-              min={0}
-              label="Effort (person-days)"
-              value={form.effort_person_days}
-              onChange={handleChange}
-              required
-            />
             <Select
               name="complexity"
               label="Complexity"
               value={form.complexity}
               onChange={handleChange}
+              wrapperClassName="md:col-start-3"
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>

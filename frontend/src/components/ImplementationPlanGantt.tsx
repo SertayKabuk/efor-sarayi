@@ -9,7 +9,7 @@ interface Props {
 
 const gridMarkers = [25, 50, 75];
 const barColors = [
-  "bg-brand-primary",
+  "bg-brand-solid",
   "bg-violet-600",
   "bg-sky-600",
   "bg-emerald-600",
@@ -58,8 +58,6 @@ export default function ImplementationPlanGantt({
     return null;
   }
 
-  const minimumWidth = Math.min(Math.max(100 / Math.max(phases.length * 2, 8), 4), 10);
-
   let cumulativeEffort = 0;
   const timeline = phases.map((phase) => {
     const effort = Math.max(phase.effort_days, 0);
@@ -67,7 +65,7 @@ export default function ImplementationPlanGantt({
     const end = cumulativeEffort + effort;
     const left = totalEffort > 0 ? (start / totalEffort) * 100 : 0;
     const actualWidth = totalEffort > 0 ? (effort / totalEffort) * 100 : 0;
-    const width = effort > 0 ? Math.max(actualWidth, minimumWidth) : minimumWidth;
+    const right = totalEffort > 0 ? ((totalEffort - end) / totalEffort) * 100 : 0;
 
     cumulativeEffort = end;
 
@@ -76,8 +74,9 @@ export default function ImplementationPlanGantt({
       effort,
       start,
       end,
-      left: Math.min(left, Math.max(100 - width, 0)),
-      width: Math.min(width, 100),
+      left,
+      width: Math.max(actualWidth, 0.01),
+      align: right < 12 ? "end" : "start",
     };
   });
 
@@ -92,9 +91,7 @@ export default function ImplementationPlanGantt({
             Sequential effort timeline derived from the implementation phases.
           </p>
         </div>
-        <p className="text-xs text-tertiary">
-          {phases.length} phase(s) · {formatDays(totalEffort)} person-days total
-        </p>
+        <p className="text-xs text-tertiary">{phases.length} phase(s)</p>
       </div>
 
       <div className="mt-4 overflow-x-auto">
@@ -141,16 +138,23 @@ export default function ImplementationPlanGantt({
 
                   <div
                     className={cx(
-                      "absolute inset-y-1.5 flex min-w-0 items-center rounded-xl px-3 text-xs font-semibold text-white shadow-sm",
-                      barColors[index % barColors.length]
+                      "absolute inset-y-1.5 flex min-w-0",
+                      entry.align === "end" ? "justify-end" : "justify-start"
                     )}
                     style={{
                       left: `${entry.left}%`,
                       width: `${entry.width}%`,
                     }}
-                    title={`${entry.phase.phase}: ${rangeLabel}`}
                   >
-                    <span className="truncate">{rangeLabel}</span>
+                    <div
+                      className={cx(
+                        "flex w-max min-w-full items-center rounded-xl px-3 text-xs font-semibold whitespace-nowrap text-primary_on-brand shadow-sm",
+                        barColors[index % barColors.length]
+                      )}
+                      title={`${entry.phase.phase}: ${rangeLabel}`}
+                    >
+                      <span>{rangeLabel}</span>
+                    </div>
                   </div>
                 </div>
               </div>

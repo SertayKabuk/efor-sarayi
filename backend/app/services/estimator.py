@@ -3,6 +3,7 @@ from openai import AsyncOpenAI
 
 from app.config import settings
 from app.schemas.project import EstimationRequest, EstimationResponse, SimilarProject, PlanPhase, Risk
+from app.services.effort import calculate_implementation_plan_effort
 
 
 class EstimatorPlanPhase(BaseModel):
@@ -18,7 +19,6 @@ class EstimatorRisk(BaseModel):
 
 class EstimatorResponse(BaseModel):
     estimated_days: float
-    effort_person_days: float
     confidence: str
     reasoning: str
     implementation_plan: list[EstimatorPlanPhase]
@@ -67,19 +67,18 @@ SIMILAR PAST PROJECTS:{similar_text if similar_text else ' None available'}
 
 Provide:
 1. **estimated_days**: Total calendar duration in days
-2. **effort_person_days**: Total effort in person-days (sum of all phase efforts)
-3. **confidence**: "low", "medium", or "high"
-4. **reasoning**: Detailed explanation of your estimate
-5. **implementation_plan**: Ordered list of phases, each with:
+2. **confidence**: "low", "medium", or "high"
+3. **reasoning**: Detailed explanation of your estimate
+4. **implementation_plan**: Ordered list of phases, each with:
    - phase: Phase name (e.g. "Phase 1: Setup & Infrastructure")
    - tasks: List of concrete tasks in this phase
    - effort_days: Person-days for this phase
-6. **team_composition**: Suggested team roles (e.g. "2 Backend Developers", "1 QA Engineer")
-7. **assumptions**: What you're assuming to be true for this estimate (e.g. "No legacy data migration needed", "APIs are well-documented")
-8. **risks**: Potential risks that could impact timeline, each with description and impact ("low", "medium", "high")
-9. **questions**: Ambiguous areas or clarifying questions that should be answered to refine the estimate (e.g. "What is the expected concurrent user count?", "Is there an existing design system?")
+5. **team_composition**: Suggested team roles (e.g. "2 Backend Developers", "1 QA Engineer")
+6. **assumptions**: What you're assuming to be true for this estimate (e.g. "No legacy data migration needed", "APIs are well-documented")
+7. **risks**: Potential risks that could impact timeline, each with description and impact ("low", "medium", "high")
+8. **questions**: Ambiguous areas or clarifying questions that should be answered to refine the estimate (e.g. "What is the expected concurrent user count?", "Is there an existing design system?")
 
-Make the implementation plan realistic and actionable. The effort_person_days should equal the sum of all phase effort_days. Questions should identify the most important unknowns that would change the estimate if answered differently."""
+Make the implementation plan realistic and actionable. Questions should identify the most important unknowns that would change the estimate if answered differently."""
 
     if request.custom_prompt:
         prompt += f"\n\nADDITIONAL USER INSTRUCTIONS:\n{request.custom_prompt}"
@@ -91,6 +90,7 @@ Make the implementation plan realistic and actionable. The effort_person_days sh
     )
 
     result = response.output_parsed
+    total_effort_person_days = calculate_implementation_plan_effort(result.implementation_plan)
 
     similar_project_models = [
         SimilarProject(
@@ -112,7 +112,7 @@ Make the implementation plan realistic and actionable. The effort_person_days sh
 
     return EstimationResponse(
         estimated_days=result.estimated_days,
-        effort_person_days=result.effort_person_days,
+        effort_person_days=total_effort_person_days,
         confidence=result.confidence,
         reasoning=result.reasoning,
         implementation_plan=[

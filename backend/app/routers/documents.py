@@ -97,7 +97,6 @@ async def _refresh_project_from_documents(
     project.requirements = extracted.requirements
     project.tech_stack = extracted.tech_stack
     project.duration_days = extracted.duration_days
-    project.effort_person_days = extracted.effort_person_days
     project.complexity = extracted.complexity
     project.constraints = extracted.constraints
     project.implementation_plan = [p.model_dump() for p in extracted.implementation_plan]

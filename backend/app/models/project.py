@@ -5,6 +5,8 @@ from sqlalchemy import ARRAY, DateTime, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from app.services.effort import calculate_implementation_plan_effort
+
 
 class Base(DeclarativeBase):
     pass
@@ -23,7 +25,6 @@ class Project(Base):
     requirements: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     tech_stack: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False)
     duration_days: Mapped[int] = mapped_column(Integer, nullable=False)
-    effort_person_days: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     complexity: Mapped[str] = mapped_column(String(20), nullable=False)
     constraints: Mapped[list[str]] = mapped_column(ARRAY(String), nullable=False, default=list)
     implementation_plan: Mapped[list] = mapped_column(JSON, nullable=False, default=list)
@@ -42,6 +43,10 @@ class Project(Base):
     documents: Mapped[list["Document"]] = relationship(
         back_populates="project", cascade="all, delete-orphan", lazy="selectin"
     )
+
+    @property
+    def effort_person_days(self) -> float:
+        return calculate_implementation_plan_effort(self.implementation_plan)
 
 
 class Document(Base):

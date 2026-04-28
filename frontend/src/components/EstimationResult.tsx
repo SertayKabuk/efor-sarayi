@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Download04 } from "@untitledui/icons";
+import Alert from "@/components/ui/Alert";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
 import {
@@ -10,6 +12,8 @@ import {
 } from "@/components/ui/Card";
 import type { EstimationResponse } from "../types/project";
 import { exportEstimate } from "../api/client";
+import { buildPdfFilename, downloadElementAsPdf } from "../utils/pdf";
+import EstimatePdfDocument from "./EstimatePdfDocument";
 import ExportModal from "./ExportModal";
 import ImplementationPlanGantt from "./ImplementationPlanGantt";
 
@@ -31,9 +35,32 @@ const impactColors: Record<string, string> = {
 
 export default function EstimationResult({ result }: Props) {
   const [showExport, setShowExport] = useState(false);
+  const [pdfError, setPdfError] = useState("");
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const pdfContentRef = useRef<HTMLDivElement>(null);
+
+  const handleDownloadPdf = async () => {
+    if (!pdfContentRef.current) return;
+
+    setPdfLoading(true);
+    setPdfError("");
+
+    try {
+      await downloadElementAsPdf(
+        pdfContentRef.current,
+        buildPdfFilename("effort-estimate")
+      );
+    } catch {
+      setPdfError("Failed to generate the PDF export.");
+    } finally {
+      setPdfLoading(false);
+    }
+  };
 
   return (
     <div className="space-y-4">
+      {pdfError && <Alert tone="error">{pdfError}</Alert>}
+
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -47,6 +74,15 @@ export default function EstimationResult({ result }: Props) {
               <Badge tone={(confidenceColors[result.confidence] as never) || "neutral"}>
                 {result.confidence} confidence
               </Badge>
+              <Button
+                tone="secondary"
+                size="sm"
+                iconLeading={Download04}
+                onClick={handleDownloadPdf}
+                loading={pdfLoading}
+              >
+                PDF
+              </Button>
               <Button tone="success" size="sm" onClick={() => setShowExport(true)}>
                 Export
               </Button>
@@ -121,14 +157,6 @@ export default function EstimationResult({ result }: Props) {
                 )}
               </div>
             ))}
-            <div className="border-t border-secondary pt-2 text-right text-sm font-semibold text-primary">
-              Total:{" "}
-              {result.implementation_plan.reduce(
-                (sum, p) => sum + p.effort_days,
-                0
-              )}{" "}
-              person-days
-            </div>
           </CardContent>
         </Card>
       )}
@@ -236,6 +264,16 @@ export default function EstimationResult({ result }: Props) {
           onClose={() => setShowExport(false)}
         />
       )}
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed top-0"
+        style={{ left: "-200vw" }}
+      >
+        <div ref={pdfContentRef}>
+          <EstimatePdfDocument result={result} />
+        </div>
+      </div>
     </div>
   );
 }

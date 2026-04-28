@@ -41,7 +41,6 @@ export interface ProjectFormData {
   requirements: string[];
   tech_stack: string[];
   duration_days: number;
-  effort_person_days: number;
   complexity: "low" | "medium" | "high" | "very_high";
   constraints: string[];
   implementation_plan: PlanPhase[];

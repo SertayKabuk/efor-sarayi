@@ -11,8 +11,17 @@ interface Props {
   onChange: (phases: PlanPhase[]) => void;
 }
 
+function calculatePlanEffort(phases: PlanPhase[]) {
+  return phases.reduce((sum, phase) => sum + Math.max(phase.effort_days, 0), 0);
+}
+
+function formatEffort(value: number) {
+  return Number.isInteger(value) ? value.toString() : value.toFixed(1);
+}
+
 export default function PlanEditor({ phases, onChange }: Props) {
   const [newPhase, setNewPhase] = useState("");
+  const totalEffort = calculatePlanEffort(phases);
 
   const addPhase = () => {
     const name = newPhase.trim();
@@ -46,7 +55,10 @@ export default function PlanEditor({ phases, onChange }: Props) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-primary">Implementation Plan</p>
-        <p className="text-xs text-tertiary">{phases.length} phase(s)</p>
+        <p className="text-xs text-tertiary">
+          {phases.length} phase(s)
+          {phases.length > 0 ? ` · ${formatEffort(totalEffort)} person-days total` : ""}
+        </p>
       </div>
       {phases.length > 0 && <ImplementationPlanGantt phases={phases} emptyState="hint" />}
       <div className="space-y-3">

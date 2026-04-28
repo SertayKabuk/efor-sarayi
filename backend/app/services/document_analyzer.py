@@ -51,7 +51,6 @@ class ExtractedProjectInfo(BaseModel):
     requirements: list[str]
     tech_stack: list[str]
     duration_days: int
-    effort_person_days: int
     complexity: str
     constraints: list[str]
     implementation_plan: list[ExtractedPlanPhase]
@@ -430,7 +429,6 @@ Extract the following:
 - requirements: List of non-functional requirements like security, compliance, performance, accessibility, i18n (e.g. "HIPAA compliance", "99.9% uptime SLA", "WCAG 2.1 AA", "Multi-language support")
 - tech_stack: List of technologies, frameworks, and tools
 - duration_days: Project duration in calendar days (estimate from context if not explicitly stated, default to 30)
-- effort_person_days: Total effort in person-days (estimate from context, default to duration_days)
 - complexity: One of "low", "medium", "high", "very_high" based on the project scope
 - constraints: List of constraints like deadlines, regulations, legacy system dependencies
 - implementation_plan: List of phases, each with:

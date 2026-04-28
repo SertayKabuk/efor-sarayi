@@ -13,6 +13,7 @@
     "@react-oauth/google": "^0.13.5",
     "@tailwindcss/vite": "^4.2.2",
     "@untitledui/icons": "^0.0.22",
+    "html2pdf.js": "^0.14.0",
     "react": "^19.2.5",
     "react-aria-components": "^1.17.0",
     "react-dom": "^19.2.5",

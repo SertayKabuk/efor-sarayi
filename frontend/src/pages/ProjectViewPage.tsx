@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download04, File04 } from "@untitledui/icons";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import Alert from "@/components/ui/Alert";
@@ -16,7 +16,9 @@ import { getDocumentDownloadUrl } from "../api/client";
 import type { DocumentInfo, Project } from "../types/project";
 import ExportModal from "../components/ExportModal";
 import ImplementationPlanGantt from "../components/ImplementationPlanGantt";
+import ProjectPdfDocument from "../components/ProjectPdfDocument";
 import ProjectAiChat from "../components/ProjectAiChat";
+import { buildPdfFilename, downloadElementAsPdf } from "../utils/pdf";
 
 const complexityColors: Record<string, BadgeTone> = {
   low: "success",
@@ -51,7 +53,10 @@ export default function ProjectViewPage() {
   const [documents, setDocuments] = useState<DocumentInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [pdfError, setPdfError] = useState("");
+  const [pdfLoading, setPdfLoading] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const pdfContentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -74,6 +79,21 @@ export default function ProjectViewPage() {
     }
   };
 
+  const handleDownloadPdf = async () => {
+    if (!project || !pdfContentRef.current) return;
+
+    setPdfLoading(true);
+    setPdfError("");
+
+    try {
+      await downloadElementAsPdf(pdfContentRef.current, buildPdfFilename(project.name));
+    } catch {
+      setPdfError("Failed to generate the PDF export.");
+    } finally {
+      setPdfLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <Card>
@@ -90,6 +110,8 @@ export default function ProjectViewPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-6">
+      {pdfError && <Alert tone="error">{pdfError}</Alert>}
+
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -113,6 +135,15 @@ export default function ProjectViewPage() {
             </div>
 
             <div className="flex flex-wrap gap-2">
+              <Button
+                tone="secondary"
+                size="sm"
+                iconLeading={Download04}
+                onClick={handleDownloadPdf}
+                loading={pdfLoading}
+              >
+                PDF
+              </Button>
               <Button tone="success" size="sm" iconLeading={Download04} onClick={() => setShowExport(true)}>
                 Export
               </Button>
@@ -184,9 +215,6 @@ export default function ProjectViewPage() {
                 )}
               </div>
             ))}
-            <div className="border-t border-secondary pt-2 text-right text-sm font-semibold text-primary">
-              Total: {project.implementation_plan.reduce((sum, p) => sum + p.effort_days, 0)} person-days
-            </div>
           </CardContent>
         </Card>
       )}
@@ -297,6 +325,16 @@ export default function ProjectViewPage() {
           onClose={() => setShowExport(false)}
         />
       )}
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed top-0"
+        style={{ left: "-200vw" }}
+      >
+        <div ref={pdfContentRef}>
+          <ProjectPdfDocument project={project} documents={documents} />
+        </div>
+      </div>
     </div>
   );
 }

@@ -24,7 +24,6 @@ class ProjectCreate(BaseModel):
     requirements: list[str] = []
     tech_stack: list[str] = []
     duration_days: int = Field(ge=1)
-    effort_person_days: int = Field(ge=0, default=0)
     complexity: Literal["low", "medium", "high", "very_high"]
     constraints: list[str] = []
     implementation_plan: list[PlanPhase] = []
@@ -43,7 +42,6 @@ class ProjectUpdate(BaseModel):
     requirements: list[str] = []
     tech_stack: list[str] = []
     duration_days: int = Field(ge=1)
-    effort_person_days: int = Field(ge=0, default=0)
     complexity: Literal["low", "medium", "high", "very_high"]
     constraints: list[str] = []
     implementation_plan: list[PlanPhase] = []
@@ -63,7 +61,7 @@ class ProjectRead(BaseModel):
     requirements: list[str]
     tech_stack: list[str]
     duration_days: int
-    effort_person_days: int
+    effort_person_days: float
     complexity: str
     constraints: list[str]
     implementation_plan: list[PlanPhase]
@@ -87,7 +85,7 @@ class SimilarProject(BaseModel):
     requirements: list[str]
     tech_stack: list[str]
     duration_days: int
-    effort_person_days: int
+    effort_person_days: float
     complexity: str
     constraints: list[str]
     similarity_score: float

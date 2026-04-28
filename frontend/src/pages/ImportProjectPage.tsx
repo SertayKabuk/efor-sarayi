@@ -50,7 +50,6 @@ export default function ImportProjectPage() {
         requirements: [],
         tech_stack: [],
         duration_days: 1,
-        effort_person_days: 0,
         complexity: "medium",
         constraints: [],
         implementation_plan: [],

@@ -46,7 +46,6 @@ class ProjectChatContextTests(unittest.TestCase):
             requirements=["Audit logging", "99.9% uptime"],
             tech_stack=["FastAPI", "React", "PostgreSQL"],
             duration_days=90,
-            effort_person_days=180,
             complexity="high",
             constraints=["Fixed go-live date", "Legacy SAP data contracts"],
             implementation_plan=[
