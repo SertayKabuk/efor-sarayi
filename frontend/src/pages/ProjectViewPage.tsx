@@ -87,8 +87,9 @@ export default function ProjectViewPage() {
 
     try {
       await downloadElementAsPdf(pdfContentRef.current, buildPdfFilename(project.name));
-    } catch {
-      setPdfError("Failed to generate the PDF export.");
+    } catch (error) {
+      console.error("Project PDF export failed", error);
+      setPdfError(error instanceof Error ? error.message : "Failed to generate the PDF export.");
     } finally {
       setPdfLoading(false);
     }

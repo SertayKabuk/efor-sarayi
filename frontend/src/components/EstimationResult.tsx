@@ -50,8 +50,9 @@ export default function EstimationResult({ result }: Props) {
         pdfContentRef.current,
         buildPdfFilename("effort-estimate")
       );
-    } catch {
-      setPdfError("Failed to generate the PDF export.");
+    } catch (error) {
+      console.error("Estimate PDF export failed", error);
+      setPdfError(error instanceof Error ? error.message : "Failed to generate the PDF export.");
     } finally {
       setPdfLoading(false);
     }

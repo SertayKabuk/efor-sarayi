@@ -11,6 +11,18 @@ export function buildPdfFilename(title: string) {
   return `${slug}.pdf`;
 }
 
+function getPdfErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message || "Failed to generate the PDF export.";
+  }
+
+  if (typeof error === "string" && error.trim()) {
+    return error;
+  }
+
+  return "Failed to generate the PDF export.";
+}
+
 type PdfExportOptions = {
   margin?: number | [number, number] | [number, number, number, number];
   filename?: string;
@@ -42,36 +54,65 @@ export async function downloadElementAsPdf(
   filename: string
 ) {
   const { default: html2pdf } = await import("html2pdf.js");
+  const exportHost = document.createElement("div");
+  const clonedElement = element.cloneNode(true) as HTMLElement;
 
-  await new Promise<void>((resolve) => {
-    requestAnimationFrame(() => resolve());
-  });
+  exportHost.setAttribute("data-pdf-export-host", "true");
+  exportHost.style.position = "fixed";
+  exportHost.style.top = "0";
+  exportHost.style.left = "0";
+  exportHost.style.opacity = "0";
+  exportHost.style.pointerEvents = "none";
+  exportHost.style.zIndex = "-1";
+  exportHost.style.background = "#ffffff";
+  exportHost.style.padding = "0";
+  exportHost.style.margin = "0";
+  exportHost.style.overflow = "hidden";
 
-  const options: PdfExportOptions = {
-    margin: [0.35, 0.4, 0.35, 0.4],
-    filename,
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: {
-      scale: Math.min(window.devicePixelRatio || 1, 2),
-      useCORS: true,
-      logging: false,
-      backgroundColor: "#ffffff",
-    },
-    jsPDF: {
-      unit: "in",
-      format: "a4",
-      orientation: "portrait",
-    },
-    pagebreak: {
-      mode: ["css", "legacy"],
-      avoid: ".pdf-avoid-break",
-    },
-  };
+  exportHost.appendChild(clonedElement);
+  document.body.appendChild(exportHost);
 
-  const worker = html2pdf();
+  try {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => resolve());
+    });
 
-  await worker
-    .set(options)
-    .from(element)
-    .save();
+    if ("fonts" in document) {
+      await document.fonts.ready;
+    }
+
+    const options: PdfExportOptions = {
+      margin: [0.35, 0.4, 0.35, 0.4],
+      filename,
+      image: { type: "jpeg", quality: 0.96 },
+      html2canvas: {
+        scale: Math.max(1, Math.min(window.devicePixelRatio || 1, 1.5)),
+        useCORS: true,
+        logging: false,
+        backgroundColor: "#ffffff",
+      },
+      jsPDF: {
+        unit: "in",
+        format: "a4",
+        orientation: "portrait",
+      },
+      pagebreak: {
+        mode: ["css", "legacy"],
+        avoid: ".pdf-avoid-break",
+      },
+    };
+
+    const worker = html2pdf();
+
+    await worker
+      .set(options)
+      .from(clonedElement)
+      .save();
+  } catch (error) {
+    const message = getPdfErrorMessage(error);
+    console.error("PDF export failed", error);
+    throw new Error(message);
+  } finally {
+    exportHost.remove();
+  }
 }
