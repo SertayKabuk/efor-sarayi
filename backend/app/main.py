@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth import get_current_user
 from app.config import settings
-from app.routers import auth, documents, estimation, export, projects
+from app.routers import auth, chat, documents, estimation, export, projects
 
 
 @asynccontextmanager
@@ -32,7 +32,7 @@ app.add_middleware(
 app.include_router(auth.router)
 
 # protected routes — all require authentication
-for router in [projects.router, estimation.router, documents.router, export.router]:
+for router in [projects.router, chat.router, estimation.router, documents.router, export.router]:
     app.include_router(router, dependencies=[Depends(get_current_user)])
 
 

@@ -2,6 +2,8 @@ import type {
   Project,
   ProjectFormData,
   DocumentInfo,
+  ProjectChatRequest,
+  ProjectChatResponse,
   EstimationRequest,
   EstimationResponse,
   ExportMode,
@@ -65,6 +67,16 @@ export async function deleteDocument(
 ): Promise<Project> {
   return requestJson<Project>(`/projects/${projectId}/documents/${documentId}`, {
     method: "DELETE",
+  });
+}
+
+export async function chatWithProject(
+  projectId: string,
+  request: ProjectChatRequest
+): Promise<ProjectChatResponse> {
+  return requestJson<ProjectChatResponse>(`/projects/${projectId}/chat`, {
+    method: "POST",
+    body: request,
   });
 }
 

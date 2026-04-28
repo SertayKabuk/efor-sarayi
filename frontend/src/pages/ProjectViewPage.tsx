@@ -15,6 +15,7 @@ import { deleteProject, exportProject, getDocuments, getProject } from "../api/c
 import { getDocumentDownloadUrl } from "../api/client";
 import type { DocumentInfo, Project } from "../types/project";
 import ExportModal from "../components/ExportModal";
+import ProjectAiChat from "../components/ProjectAiChat";
 
 const complexityColors: Record<string, BadgeTone> = {
   low: "success",
@@ -153,6 +154,8 @@ export default function ProjectViewPage() {
           </div>
         </CardContent>
       </Card>
+
+      <ProjectAiChat project={project} documents={documents} />
 
       {project.implementation_plan.length > 0 && (
         <Card>

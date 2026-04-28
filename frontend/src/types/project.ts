@@ -59,6 +59,27 @@ export interface DocumentInfo {
   created_at: string;
 }
 
+export type ProjectChatRole = "user" | "assistant";
+
+export interface ProjectChatMessage {
+  role: ProjectChatRole;
+  content: string;
+}
+
+export interface ProjectChatRequest {
+  message: string;
+  history: ProjectChatMessage[];
+  include_documents?: boolean;
+}
+
+export interface ProjectChatResponse {
+  answer: string;
+  include_documents: boolean;
+  project_context_included: boolean;
+  document_count: number;
+  document_filenames: string[];
+}
+
 export interface EstimationRequest {
   name: string;
   description: string;

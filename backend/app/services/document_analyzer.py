@@ -330,6 +330,49 @@ def _build_text_content_block(filename: str, text: str) -> dict:
     }
 
 
+def _truncate_text_for_prompt(
+    text: str,
+    max_chars: int,
+    *,
+    suffix: str = "\n\n[Document truncated for chat context.]",
+) -> str:
+    if max_chars <= 0:
+        return suffix.strip()
+
+    if len(text) <= max_chars:
+        return text
+
+    content_limit = max_chars - len(suffix)
+    if content_limit <= 0:
+        return suffix.strip()
+
+    truncated = text[:content_limit].rstrip()
+    last_space = truncated.rfind(" ")
+    if last_space >= max(0, content_limit - 200):
+        truncated = truncated[:last_space].rstrip()
+
+    return f"{truncated}{suffix}"
+
+
+def extract_document_text(
+    filename: str,
+    file_path: str,
+    max_chars: int | None = None,
+) -> str:
+    extracted_text = _extract_text_from_document(filename, file_path)
+    normalized = _normalize_extracted_text(extracted_text)
+
+    if not normalized:
+        raise DocumentAnalysisError(
+            f"No readable text could be extracted from '{filename}'. Convert it to PDF and try again."
+        )
+
+    if max_chars is not None:
+        normalized = _truncate_text_for_prompt(normalized, max_chars)
+
+    return normalized
+
+
 def _build_file_content_block(filename: str, file_path: str) -> dict:
     """Build an input_file content block with base64-encoded file data."""
     path = Path(file_path)
@@ -343,13 +386,21 @@ def _build_file_content_block(filename: str, file_path: str) -> dict:
     }
 
 
-def _build_document_content_block(filename: str, file_path: str) -> dict:
+def build_document_prompt_content_block(
+    filename: str,
+    file_path: str,
+    max_text_chars: int | None = None,
+) -> dict:
     extension = Path(filename).suffix.lower()
     if extension in RAW_FILE_MIME_TYPES:
         return _build_file_content_block(filename, file_path)
 
-    extracted_text = _extract_text_from_document(filename, file_path)
+    extracted_text = extract_document_text(filename, file_path, max_chars=max_text_chars)
     return _build_text_content_block(filename, extracted_text)
+
+
+def _build_document_content_block(filename: str, file_path: str) -> dict:
+    return build_document_prompt_content_block(filename, file_path)
 
 
 async def extract_project_info(

@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class PlanPhase(BaseModel):
@@ -100,6 +100,41 @@ class DocumentRead(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=8000)
+
+    @field_validator("content", mode="before")
+    @classmethod
+    def normalize_content(cls, value: str) -> str:
+        normalized = str(value).strip()
+        if not normalized:
+            raise ValueError("Message content cannot be empty.")
+        return normalized
+
+
+class ProjectChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=4000)
+    history: list[ChatMessage] = []
+    include_documents: bool = True
+
+    @field_validator("message", mode="before")
+    @classmethod
+    def normalize_message(cls, value: str) -> str:
+        normalized = str(value).strip()
+        if not normalized:
+            raise ValueError("Message cannot be empty.")
+        return normalized
+
+
+class ProjectChatResponse(BaseModel):
+    answer: str = Field(min_length=1)
+    include_documents: bool = True
+    project_context_included: bool = True
+    document_count: int = Field(ge=0, default=0)
+    document_filenames: list[str] = []
 
 
 class EstimationRequest(BaseModel):
