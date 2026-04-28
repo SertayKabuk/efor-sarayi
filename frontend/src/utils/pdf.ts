@@ -33,14 +33,73 @@ function cloneCanvasContent(source: HTMLCanvasElement, target: HTMLCanvasElement
   context.drawImage(source, 0, 0);
 }
 
-function inlineComputedStyles(source: Element, target: Element) {
+const unsupportedColorFunctionPattern = /\boklch\(|\boklab\(/i;
+
+function createStyleValueResolver() {
+  const resolver = document.createElement("div");
+  const cache = new Map<string, string>();
+
+  resolver.style.position = "fixed";
+  resolver.style.left = "-9999px";
+  resolver.style.top = "0";
+  resolver.style.visibility = "hidden";
+  resolver.style.pointerEvents = "none";
+  resolver.style.background = "#ffffff";
+  resolver.style.color = "#000000";
+  document.body.appendChild(resolver);
+
+  return {
+    resolve(property: string, value: string) {
+      if (!unsupportedColorFunctionPattern.test(value)) {
+        return value;
+      }
+
+      const key = `${property}:${value}`;
+      const cached = cache.get(key);
+      if (cached !== undefined) {
+        return cached;
+      }
+
+      resolver.style.setProperty(property, value);
+      const resolvedValue = window.getComputedStyle(resolver).getPropertyValue(property).trim();
+      resolver.style.removeProperty(property);
+
+      const safeValue = unsupportedColorFunctionPattern.test(resolvedValue)
+        ? ""
+        : resolvedValue;
+
+      cache.set(key, safeValue);
+      return safeValue;
+    },
+    cleanup() {
+      resolver.remove();
+    },
+  };
+}
+
+function inlineComputedStyles(
+  source: Element,
+  target: Element,
+  resolveStyleValue: (property: string, value: string) => string
+) {
   if (!(source instanceof HTMLElement) || !(target instanceof HTMLElement)) {
     return;
   }
 
   const computedStyle = window.getComputedStyle(source);
   for (const property of Array.from(computedStyle)) {
-    target.style.setProperty(property, computedStyle.getPropertyValue(property));
+    if (property.startsWith("--")) {
+      continue;
+    }
+
+    const rawValue = computedStyle.getPropertyValue(property);
+    const normalizedValue = resolveStyleValue(property, rawValue);
+
+    if (!normalizedValue) {
+      continue;
+    }
+
+    target.style.setProperty(property, normalizedValue);
   }
 
   if (source instanceof HTMLInputElement && target instanceof HTMLInputElement) {
@@ -66,7 +125,7 @@ function inlineComputedStyles(source: Element, target: Element) {
   sourceChildren.forEach((child, index) => {
     const targetChild = targetChildren[index];
     if (targetChild) {
-      inlineComputedStyles(child, targetChild);
+      inlineComputedStyles(child, targetChild, resolveStyleValue);
     }
   });
 }
@@ -169,10 +228,14 @@ export async function downloadElementAsPdf(
   const { default: html2pdf } = await import("html2pdf.js");
   const { iframe, iframeDoc } = createPdfSandboxDocument();
   const clonedElement = element.cloneNode(true) as HTMLElement;
-  inlineComputedStyles(element, clonedElement);
-  iframeDoc.body.appendChild(clonedElement);
+  const styleValueResolver = createStyleValueResolver();
 
   try {
+    inlineComputedStyles(element, clonedElement, (property, value) =>
+      styleValueResolver.resolve(property, value)
+    );
+    iframeDoc.body.appendChild(clonedElement);
+
     await new Promise<void>((resolve) => {
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
     });
@@ -217,6 +280,7 @@ export async function downloadElementAsPdf(
     console.error("PDF export failed", error);
     throw new Error(message);
   } finally {
+    styleValueResolver.cleanup();
     iframe.remove();
   }
 }
