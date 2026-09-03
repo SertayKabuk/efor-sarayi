@@ -1,5 +1,4 @@
 import logging
-from pathlib import Path
 from typing import Any, Sequence
 
 from openai import AsyncOpenAI
@@ -8,7 +7,6 @@ from app.config import settings
 from app.models.project import Document, Project
 from app.schemas.project import ChatMessage
 from app.services.document_analyzer import (
-    RAW_FILE_MIME_TYPES,
     DocumentAnalysisError,
     build_document_prompt_content_block,
 )
@@ -110,19 +108,16 @@ def build_document_context_blocks(
     remaining_text_chars = max_total_text_document_chars
 
     for document in documents:
-        extension = Path(document.filename).suffix.lower()
+        if remaining_text_chars <= 0:
+            continue
+
         try:
-            if extension in RAW_FILE_MIME_TYPES:
-                block = build_document_prompt_content_block(document.filename, document.file_path)
-            else:
-                if remaining_text_chars <= 0:
-                    continue
-                block = build_document_prompt_content_block(
-                    document.filename,
-                    document.file_path,
-                    max_text_chars=min(max_text_document_chars, remaining_text_chars),
-                )
-                remaining_text_chars -= len(block["text"])
+            block = build_document_prompt_content_block(
+                document.filename,
+                document.file_path,
+                max_text_chars=min(max_text_document_chars, remaining_text_chars),
+            )
+            remaining_text_chars -= len(block["text"])
         except DocumentAnalysisError:
             logger.warning(
                 "Skipping document %s during project chat context build",

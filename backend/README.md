@@ -87,16 +87,28 @@ The estimation endpoint returns:
 
 ## Local Development
 
+From the repository root, start the PostgreSQL and ChromaDB services first:
+
+```powershell
+docker compose up -d postgres chromadb
+```
+
+Then, from the `backend` directory:
+
 ```bash
 # Install dependencies
 uv sync
 
 # Run migrations
-alembic upgrade head
+uv run python -m alembic upgrade head
 
-# Start server
-uvicorn app.main:app --reload --port 8080
+# Start the FastAPI server
+uv run uvicorn app.main:app --reload --port 8080
 ```
+
+The API is available at `http://localhost:8080`, with interactive documentation at
+`http://localhost:8080/docs`. The application entry point is `app.main:app`; do not
+run `main.py` directly.
 
 ## Native SSE Responses
 
@@ -105,19 +117,21 @@ Each stream emits a single JSON message payload and does not include legacy cust
 
 ## Database Migrations
 
+Use Alembic through Python so the local `app` package is available on the import path:
+
 ```bash
 # Create a new migration
-alembic revision --autogenerate -m "description"
+uv run python -m alembic revision --autogenerate -m "description"
 
 # Apply migrations
-alembic upgrade head
+uv run python -m alembic upgrade head
 
 # Rollback one step
-alembic downgrade -1
+uv run python -m alembic downgrade -1
 ```
 
 ## Supported File Types
 
 PDF, DOCX, DOC, ODT, RTF, TXT, MD, XLSX, XLS, CSV, PPTX, PPT (max 50 MB per file).
 
-When running against Azure Responses, PDF files are sent directly to the model and non-PDF formats are text-extracted server-side before analysis. Legacy binary Office formats (`.doc`, `.xls`, `.ppt`) may need conversion to PDF or modern Office formats first.
+MarkItDown converts PDF, DOCX, PPTX, XLSX, XLS, CSV, TXT, and MD files to Markdown locally before AI analysis. ODT and RTF files use the backend's dedicated text parsers. OCR is not enabled, so scanned or image-only PDFs may produce no readable text. Legacy Word and PowerPoint binaries (`.doc`, `.ppt`) must be converted to PDF or a modern Office format first.

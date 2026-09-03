@@ -63,8 +63,12 @@ export default function ImportProjectPage() {
       // upload documents - this triggers AI extraction and updates the project
       await uploadDocuments(project.id, files, customPrompt || undefined);
       navigate(`/projects/${project.id}/edit`);
-    } catch {
-      setError("Failed to import project. Check file types and try again.");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to import project. Check file types and try again."
+      );
     } finally {
       setImporting(false);
     }

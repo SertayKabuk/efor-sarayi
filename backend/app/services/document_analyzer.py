@@ -1,30 +1,27 @@
-import base64
+import logging
 import re
 from pathlib import Path
 from zipfile import BadZipFile, ZipFile
 from xml.etree import ElementTree as ET
 
+from markitdown import (
+    FileConversionException,
+    MarkItDown,
+    MissingDependencyException,
+    UnsupportedFormatException,
+)
 from pydantic import BaseModel
 from openai import AsyncOpenAI, BadRequestError
 
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
 client = AsyncOpenAI(api_key=settings.openai_api_key, base_url=settings.azure_endpoint)
+_MARKITDOWN = MarkItDown(enable_plugins=False)
 
-RAW_FILE_MIME_TYPES = {
-    ".pdf": "application/pdf",
-}
-
-TEXT_FILE_EXTENSIONS = {".csv", ".md", ".txt"}
-LEGACY_BINARY_OFFICE_EXTENSIONS = {".doc", ".ppt", ".xls"}
-
-WORDPROCESSINGML_NAMESPACE = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
-DRAWINGML_NAMESPACE = {"a": "http://schemas.openxmlformats.org/drawingml/2006/main"}
-SPREADSHEETML_NAMESPACE = {
-    "main": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
-}
-PACKAGE_RELATIONSHIP_NAMESPACE = "{http://schemas.openxmlformats.org/package/2006/relationships}"
-WORKBOOK_RELATIONSHIP_ID = "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+MARKITDOWN_EXTENSIONS = {".pdf", ".docx", ".pptx", ".xlsx", ".xls", ".csv", ".md", ".txt"}
+LEGACY_BINARY_OFFICE_EXTENSIONS = {".doc", ".ppt"}
 ODF_TEXT_NAMESPACE = "urn:oasis:names:tc:opendocument:xmlns:text:1.0"
 
 
@@ -82,44 +79,6 @@ def _normalize_extracted_text(text: str) -> str:
     return "\n".join(cleaned_lines).strip()
 
 
-def _read_text_file(path: Path) -> str:
-    data = path.read_bytes()
-
-    for encoding in ("utf-8", "utf-16", "utf-16-le", "utf-16-be", "cp1254"):
-        try:
-            return data.decode(encoding)
-        except UnicodeDecodeError:
-            continue
-
-    return data.decode("latin-1")
-
-
-def _extract_docx_text(path: Path) -> str:
-    try:
-        with ZipFile(path) as archive:
-            root = ET.fromstring(archive.read("word/document.xml"))
-    except (BadZipFile, KeyError, ET.ParseError) as exc:
-        raise DocumentAnalysisError(f"'{path.name}' is not a valid DOCX file.") from exc
-
-    paragraphs: list[str] = []
-    for paragraph in root.findall(".//w:p", WORDPROCESSINGML_NAMESPACE):
-        parts: list[str] = []
-        for node in paragraph.iter():
-            node_name = _local_name(node.tag)
-            if node_name == "t" and node.text:
-                parts.append(node.text)
-            elif node_name == "tab":
-                parts.append("\t")
-            elif node_name in {"br", "cr"}:
-                parts.append("\n")
-
-        paragraph_text = "".join(parts).strip()
-        if paragraph_text:
-            paragraphs.append(paragraph_text)
-
-    return "\n".join(paragraphs)
-
-
 def _extract_odt_text(path: Path) -> str:
     try:
         with ZipFile(path) as archive:
@@ -157,160 +116,44 @@ def _extract_rtf_text(path: Path) -> str:
     return raw
 
 
-def _pptx_slide_sort_key(name: str) -> int:
-    match = re.search(r"slide(\d+)\.xml$", name)
-    return int(match.group(1)) if match else 0
-
-
-def _extract_pptx_text(path: Path) -> str:
+def _extract_with_markitdown(filename: str, path: Path) -> str:
     try:
-        with ZipFile(path) as archive:
-            slide_names = sorted(
-                (
-                    name
-                    for name in archive.namelist()
-                    if name.startswith("ppt/slides/slide") and name.endswith(".xml")
-                ),
-                key=_pptx_slide_sort_key,
-            )
+        result = _MARKITDOWN.convert_local(path)
+    except (FileConversionException, MissingDependencyException, UnsupportedFormatException, OSError) as exc:
+        logger.warning("MarkItDown failed to convert %s", filename, exc_info=True)
+        detail = str(exc).strip().replace(str(path), filename)
+        if detail:
+            raise DocumentAnalysisError(f"Could not convert '{filename}': {detail}") from exc
+        raise DocumentAnalysisError(f"Could not convert '{filename}'.") from exc
+    except Exception as exc:
+        logger.warning("Unexpected MarkItDown error for %s", filename, exc_info=True)
+        raise DocumentAnalysisError(
+            f"Could not extract readable text from '{filename}'. Verify the file is valid and try again."
+        ) from exc
 
-            slides: list[str] = []
-            for index, slide_name in enumerate(slide_names, start=1):
-                root = ET.fromstring(archive.read(slide_name))
-                texts = [
-                    node.text.strip()
-                    for node in root.findall(".//a:t", DRAWINGML_NAMESPACE)
-                    if node.text and node.text.strip()
-                ]
-                if texts:
-                    slides.append(f"Slide {index}\n" + "\n".join(texts))
-    except (BadZipFile, KeyError, ET.ParseError) as exc:
-        raise DocumentAnalysisError(f"'{path.name}' is not a valid PPTX file.") from exc
-
-    return "\n\n".join(slides)
-
-
-def _extract_xlsx_shared_strings(archive: ZipFile) -> list[str]:
-    if "xl/sharedStrings.xml" not in archive.namelist():
-        return []
-
-    root = ET.fromstring(archive.read("xl/sharedStrings.xml"))
-    shared_strings: list[str] = []
-    for item in root.findall(".//main:si", SPREADSHEETML_NAMESPACE):
-        shared_strings.append(
-            "".join(text for text in (node.text for node in item.findall(".//main:t", SPREADSHEETML_NAMESPACE)) if text)
+    markdown = getattr(result, "markdown", "")
+    if not isinstance(markdown, str) or not markdown.strip():
+        raise DocumentAnalysisError(
+            f"No readable text could be extracted from '{filename}'. "
+            "The file may be empty or image-only; OCR is not enabled."
         )
 
-    return shared_strings
-
-
-def _extract_xlsx_sheet_targets(archive: ZipFile) -> list[tuple[str, str]]:
-    workbook_root = ET.fromstring(archive.read("xl/workbook.xml"))
-    relationships_root = ET.fromstring(archive.read("xl/_rels/workbook.xml.rels"))
-
-    relationship_map = {
-        relationship.attrib["Id"]: relationship.attrib["Target"]
-        for relationship in relationships_root.findall(f".//{PACKAGE_RELATIONSHIP_NAMESPACE}Relationship")
-    }
-
-    sheets: list[tuple[str, str]] = []
-    for sheet in workbook_root.findall(".//main:sheets/main:sheet", SPREADSHEETML_NAMESPACE):
-        name = sheet.attrib.get("name", "Sheet")
-        relationship_id = sheet.attrib.get(WORKBOOK_RELATIONSHIP_ID)
-        if not relationship_id:
-            continue
-
-        target = relationship_map.get(relationship_id)
-        if not target:
-            continue
-
-        normalized_target = target if target.startswith("xl/") else f"xl/{target.lstrip('/')}"
-        sheets.append((name, normalized_target))
-
-    return sheets
-
-
-def _extract_xlsx_cell_value(cell: ET.Element, shared_strings: list[str]) -> str:
-    cell_type = cell.attrib.get("t")
-
-    if cell_type == "inlineStr":
-        return "".join(
-            text for text in (node.text for node in cell.findall(".//main:t", SPREADSHEETML_NAMESPACE)) if text
-        )
-
-    value_node = cell.find("main:v", SPREADSHEETML_NAMESPACE)
-    if value_node is None or value_node.text is None:
-        return ""
-
-    raw_value = value_node.text.strip()
-    if not raw_value:
-        return ""
-
-    if cell_type == "s":
-        try:
-            return shared_strings[int(raw_value)]
-        except (IndexError, ValueError):
-            return raw_value
-
-    if cell_type == "b":
-        return "TRUE" if raw_value == "1" else "FALSE"
-
-    return raw_value
-
-
-def _extract_xlsx_text(path: Path) -> str:
-    try:
-        with ZipFile(path) as archive:
-            shared_strings = _extract_xlsx_shared_strings(archive)
-            sheet_targets = _extract_xlsx_sheet_targets(archive)
-
-            sheet_blocks: list[str] = []
-            for sheet_name, sheet_target in sheet_targets:
-                if sheet_target not in archive.namelist():
-                    continue
-
-                root = ET.fromstring(archive.read(sheet_target))
-                row_lines: list[str] = []
-                for row in root.findall(".//main:sheetData/main:row", SPREADSHEETML_NAMESPACE):
-                    cells: list[str] = []
-                    for cell in row.findall("main:c", SPREADSHEETML_NAMESPACE):
-                        value = _extract_xlsx_cell_value(cell, shared_strings)
-                        if not value:
-                            continue
-
-                        reference = cell.attrib.get("r")
-                        cells.append(f"{reference}: {value}" if reference else value)
-
-                    if cells:
-                        row_lines.append(" | ".join(cells))
-
-                if row_lines:
-                    sheet_blocks.append(f"Sheet: {sheet_name}\n" + "\n".join(row_lines))
-    except (BadZipFile, KeyError, ET.ParseError) as exc:
-        raise DocumentAnalysisError(f"'{path.name}' is not a valid XLSX file.") from exc
-
-    return "\n\n".join(sheet_blocks)
+    return markdown
 
 
 def _extract_text_from_document(filename: str, file_path: str) -> str:
     path = Path(file_path)
     extension = Path(filename).suffix.lower()
 
-    if extension in TEXT_FILE_EXTENSIONS:
-        return _read_text_file(path)
-    if extension == ".docx":
-        return _extract_docx_text(path)
+    if extension in MARKITDOWN_EXTENSIONS:
+        return _extract_with_markitdown(filename, path)
     if extension == ".odt":
         return _extract_odt_text(path)
     if extension == ".rtf":
         return _extract_rtf_text(path)
-    if extension == ".pptx":
-        return _extract_pptx_text(path)
-    if extension == ".xlsx":
-        return _extract_xlsx_text(path)
     if extension in LEGACY_BINARY_OFFICE_EXTENSIONS:
         raise DocumentAnalysisError(
-            f"'{filename}' uses the legacy {extension} format. Azure Responses accepts PDF as a raw file input, but this backend cannot reliably extract text from legacy Office binaries. Convert it to PDF or a modern Office format and try again."
+            f"'{filename}' uses the legacy {extension} format. This backend cannot reliably extract text from legacy Word or PowerPoint binaries. Convert it to PDF or a modern Office format and try again."
         )
 
     raise DocumentAnalysisError(f"Unsupported file type '{extension or filename}'.")
@@ -372,28 +215,11 @@ def extract_document_text(
     return normalized
 
 
-def _build_file_content_block(filename: str, file_path: str) -> dict:
-    """Build an input_file content block with base64-encoded file data."""
-    path = Path(file_path)
-    data = path.read_bytes()
-    b64 = base64.b64encode(data).decode("utf-8")
-    mime = RAW_FILE_MIME_TYPES[Path(filename).suffix.lower()]
-    return {
-        "type": "input_file",
-        "filename": filename,
-        "file_data": f"data:{mime};base64,{b64}",
-    }
-
-
 def build_document_prompt_content_block(
     filename: str,
     file_path: str,
     max_text_chars: int | None = None,
 ) -> dict:
-    extension = Path(filename).suffix.lower()
-    if extension in RAW_FILE_MIME_TYPES:
-        return _build_file_content_block(filename, file_path)
-
     extracted_text = extract_document_text(filename, file_path, max_chars=max_text_chars)
     return _build_text_content_block(filename, extracted_text)
 
@@ -455,7 +281,7 @@ Combine and synthesize information from all documents into a single coherent pro
         message = str(exc)
         if "unsupported_file" in message or "Please try again with a pdf" in message:
             raise DocumentAnalysisError(
-                "The configured Azure Responses API only accepts PDF as a raw file input. Convert unsupported files to PDF, or use text-based formats such as DOCX, PPTX, XLSX, CSV, TXT, MD, ODT, or RTF so the backend can extract their text before analysis."
+                "The AI provider rejected the extracted document content. Verify the document contains readable text and try again."
             ) from exc
         raise
 

@@ -4,6 +4,7 @@ import tempfile
 import unittest
 import uuid
 from pathlib import Path
+from unittest.mock import patch
 
 _REQUIRED_ENV = {
     "DATABASE_URL": "postgresql+asyncpg://user:pass@localhost:5432/testdb",
@@ -113,25 +114,32 @@ class ProjectChatContextTests(unittest.TestCase):
         self.assertIn("Assistant: The project is focused on warehouse modernization.", joined_text)
         self.assertIn("CURRENT USER QUESTION:\nWhat does the rollout strategy look like?", joined_text)
 
-    def test_build_document_context_blocks_keeps_pdf_files_as_raw_inputs(self) -> None:
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
-            tmp.write(b"%PDF-1.4\n")
-            tmp_path = Path(tmp.name)
+    def test_build_document_context_blocks_uses_extracted_text_for_pdfs(self) -> None:
+        document = Document(
+            id=uuid.uuid4(),
+            project_id=uuid.uuid4(),
+            filename="blueprint.pdf",
+            file_path="blueprint.pdf",
+        )
 
-        try:
-            document = Document(
-                id=uuid.uuid4(),
-                project_id=uuid.uuid4(),
-                filename="blueprint.pdf",
-                file_path=str(tmp_path),
-            )
+        with patch.object(
+            project_chat,
+            "build_document_prompt_content_block",
+            return_value={
+                "type": "input_text",
+                "text": "DOCUMENT: blueprint.pdf\n\nExtracted PDF text",
+            },
+        ) as convert:
             blocks, included_filenames = project_chat.build_document_context_blocks([document])
-        finally:
-            tmp_path.unlink(missing_ok=True)
 
         self.assertEqual(included_filenames, ["blueprint.pdf"])
-        self.assertEqual(blocks[1]["type"], "input_file")
-        self.assertEqual(blocks[1]["filename"], "blueprint.pdf")
+        self.assertEqual(blocks[1]["type"], "input_text")
+        self.assertIn("Extracted PDF text", blocks[1]["text"])
+        convert.assert_called_once_with(
+            "blueprint.pdf",
+            "blueprint.pdf",
+            max_text_chars=project_chat.MAX_TEXT_DOCUMENT_CHARS,
+        )
 
     def test_build_document_context_blocks_respects_text_budget(self) -> None:
         with tempfile.NamedTemporaryFile(suffix=".txt", delete=False, mode="w", encoding="utf-8") as first_tmp:

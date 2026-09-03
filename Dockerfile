@@ -29,9 +29,7 @@ WORKDIR /frontend
 RUN npm config set strict-ssl false
 RUN npm install -g pnpm
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
-RUN NODE_ENV=development pnpm install --frozen-lockfile \
-    && pnpm approve-builds esbuild \
-    && pnpm install --frozen-lockfile
+RUN NODE_ENV=development pnpm install --frozen-lockfile --ignore-scripts
 
 ARG VITE_GOOGLE_CLIENT_ID=""
 ENV VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
